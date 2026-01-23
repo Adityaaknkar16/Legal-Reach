@@ -1,0 +1,73 @@
+.footer {
+  background-color: #111827; /* Dark Navy (Same as Navbar) */
+  color: #d1d5db; /* Light gray text */
+  padding-top: 60px;
+  margin-top: auto; /* Pushes footer to bottom */
+}
+
+.footer-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap; /* Wraps on mobile */
+  padding: 0 20px 40px;
+  gap: 40px;
+}
+
+.footer-col {
+  flex: 1;
+  min-width: 250px;
+}
+
+.footer-col h3 {
+  color: white;
+  font-size: 1.5rem;
+  margin-bottom: 15px;
+}
+
+.footer-highlight {
+  color: #3b82f6; /* Blue highlight */
+}
+
+.footer-col h4 {
+  color: white;
+  font-size: 1.2rem;
+  margin-bottom: 15px;
+  border-bottom: 2px solid #3b82f6;
+  display: inline-block;
+  padding-bottom: 5px;
+}
+
+.footer-col p {
+  line-height: 1.6;
+  font-size: 0.95rem;
+}
+
+.footer-col ul {
+  list-style: none;
+  padding: 0;
+}
+
+.footer-col ul li {
+  margin-bottom: 10px;
+}
+
+.footer-col ul li a {
+  color: #d1d5db;
+  text-decoration: none;
+  transition: color 0.3s;
+}
+
+.footer-col ul li a:hover {
+  color: #3b82f6;
+}
+
+/* Bottom Bar */
+.footer-bottom {
+  background-color: #0f172a; /* Slightly darker shade */
+  text-align: center;
+  padding: 20px;
+  border-top: 1px solid #1f2937;
+  font-size: 0.9rem;
+}

@@ -1,0 +1,103 @@
+.about-section {
+  padding: 80px 20px;
+  background-color: white; /* Clean white background */
+}
+
+.about-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 50px;
+}
+
+/* Left Side Text */
+.about-content {
+  flex: 1;
+}
+
+.about-title {
+  font-size: 2.5rem;
+  color: #111827;
+  margin-bottom: 20px;
+  position: relative;
+  display: inline-block;
+}
+
+/* Adds a small blue underline to the title */
+.about-title::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -5px;
+  width: 60px;
+  height: 4px;
+  background-color: #2563eb;
+  border-radius: 2px;
+}
+
+.about-description {
+  font-size: 1.1rem;
+  color: #374151;
+  font-weight: 500;
+  margin-bottom: 15px;
+}
+
+.about-content p {
+  color: #6b7280;
+  line-height: 1.6;
+  margin-bottom: 25px;
+}
+
+/* Stats Row */
+.about-stats {
+  display: flex;
+  gap: 40px;
+  margin-top: 30px;
+  padding-top: 20px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.stat-item h3 {
+  font-size: 2rem;
+  color: #2563eb; /* Blue Numbers */
+  margin-bottom: 5px;
+}
+
+.stat-item span {
+  color: #6b7280;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+/* Right Side Image */
+.about-image {
+  flex: 1;
+}
+
+.about-image img {
+  width: 100%;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease;
+}
+
+.about-image img:hover {
+  transform: scale(1.02);
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .about-container {
+    flex-direction: column;
+  }
+  
+  .about-stats {
+    justify-content: space-between;
+    gap: 10px;
+  }
+  
+  .stat-item h3 {
+    font-size: 1.5rem;
+  }
+}

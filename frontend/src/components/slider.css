@@ -1,0 +1,87 @@
+.hero-section {
+  /* Professional Blue Gradient Background */
+  background: linear-gradient(135deg, #1e3a8a 0%, #172554 100%);
+  height: 500px; /* Big banner height */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 0 20px;
+  color: white;
+}
+
+.hero-content h1 {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  font-weight: 700;
+}
+
+.hero-content p {
+  font-size: 1.2rem;
+  margin-bottom: 2.5rem;
+  color: #dbeafe; /* Light blue-ish text */
+}
+
+/* Search Bar Styling */
+.search-container {
+  background-color: white;
+  padding: 10px;
+  border-radius: 50px; /* Pill shape */
+  display: flex;
+  gap: 10px;
+  max-width: 800px;
+  margin: 0 auto;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+.search-input, .location-input {
+  border: none;
+  padding: 15px 20px;
+  font-size: 1rem;
+  outline: none;
+}
+
+.search-input {
+  flex: 2; /* Takes up more space */
+  border-right: 1px solid #e5e7eb; /* Divider line */
+}
+
+.location-input {
+  flex: 1; /* Takes up less space */
+}
+
+.search-btn {
+  background-color: #2563eb;
+  color: white;
+  border: none;
+  padding: 12px 30px;
+  border-radius: 30px;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.search-btn:hover {
+  background-color: #1d4ed8;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .hero-content h1 { font-size: 2rem; }
+  
+  .search-container {
+    flex-direction: column;
+    border-radius: 10px;
+    background: transparent;
+    box-shadow: none;
+  }
+  
+  .search-input, .location-input, .search-btn {
+    width: 100%;
+    border-radius: 5px;
+    margin-bottom: 10px;
+  }
+  
+  .search-input { border-right: none; }
+}
