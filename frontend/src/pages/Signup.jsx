@@ -1,91 +1,112 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import './Login.css'; // We can reuse the Login CSS!
+import './Login.css';
 
 const Signup = () => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
-    role: 'client' // Default role
+    role: 'client'
   });
-
-  const navigate = useNavigate();
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Signup Data:", formData);
-    
-    alert(`Account created for ${formData.name} as a ${formData.role}!`);
-    navigate('/login');
+    try {
+      const res = await fetch('http://localhost:3000/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+      const data = await res.json();
+      
+      if (res.ok) {
+        alert("OTP Sent! Please check your email.");
+        navigate('/verify-otp', { state: { email: formData.email } });
+      } else {
+        alert(data.error || "Signup Failed");
+      }
+    } catch (error) {
+      console.error(error);
+      alert("Backend not connected");
+    }
   };
+
+
 
   return (
     <div className="auth-container">
       <div className="auth-box">
-        <h2>Create an Account</h2>
-        <p>Join LegalReach today.</p>
-        
+        <h2>Create Account</h2>
         <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label>Full Name</label>
+          
+          <div style={{ marginBottom: '15px' }}>
+            <label style={{ display: 'block', marginBottom: '5px' }}>Name</label>
             <input 
-              type="text" 
               name="name" 
-              placeholder="John Doe"
-              value={formData.name}
-              onChange={handleChange}
+              placeholder="Full Name" 
+              onChange={handleChange} 
               required 
+              className="form-control"
+              style={{ width: '100%', padding: '10px', borderRadius: '5px', border: '1px solid #ccc' }}
             />
           </div>
 
-          <div className="form-group">
-            <label>Email Address</label>
+          <div style={{ marginBottom: '15px' }}>
+            <label style={{ display: 'block', marginBottom: '5px' }}>Email</label>
             <input 
-              type="email" 
               name="email" 
-              placeholder="Enter your email"
-              value={formData.email}
-              onChange={handleChange}
+              type="email" 
+              placeholder="Email Address" 
+              onChange={handleChange} 
               required 
+              className="form-control"
+              style={{ width: '100%', padding: '10px', borderRadius: '5px', border: '1px solid #ccc' }}
             />
           </div>
 
-          <div className="form-group">
-            <label>Password</label>
+          <div style={{ marginBottom: '15px' }}>
+            <label style={{ display: 'block', marginBottom: '5px' }}>Password</label>
             <input 
-              type="password" 
               name="password" 
-              placeholder="Create a password"
-              value={formData.password}
-              onChange={handleChange}
+              type="password" 
+              placeholder="Password" 
+              onChange={handleChange} 
               required 
+              className="form-control"
+              style={{ width: '100%', padding: '10px', borderRadius: '5px', border: '1px solid #ccc' }}
             />
           </div>
 
-          <div className="form-group">
-            <label>I am a:</label>
+          <div style={{ marginBottom: '15px' }}>
+            <label style={{ display: 'block', marginBottom: '5px' }}>Role</label>
             <select 
               name="role" 
-              value={formData.role} 
-              onChange={handleChange}
-              style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #d1d5db' }}
+              onChange={handleChange} 
+              className="form-control"
+              style={{
+                width: '100%',
+                padding: '10px',
+                borderRadius: '5px',
+                border: '1px solid #ccc',
+                backgroundColor: 'white',
+                fontSize: '16px',
+                height: '45px'
+              }}
             >
               <option value="client">Client (Looking for a Lawyer)</option>
-              <option value="lawyer">Lawyer (Offering Services)</option>
+              <option value="lawyer">Lawyer (Legal Professional)</option>
             </select>
           </div>
 
-          <button type="submit" className="auth-btn">Sign Up</button>
+          <button type="submit" className="auth-btn" style={{ marginTop: '10px' }}>Sign Up</button>
         </form>
-
-        <p className="auth-footer">
-          Already have an account? <Link to="/login">Login</Link>
-        </p>
+        <p style={{ marginTop: '15px' }}>Already have an account? <Link to="/login">Login</Link></p>
       </div>
     </div>
   );

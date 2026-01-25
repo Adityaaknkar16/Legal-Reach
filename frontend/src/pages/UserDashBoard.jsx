@@ -1,44 +1,41 @@
-import React, { useState, useEffect } from 'react';
-import './Dashboard.css';
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import './Dashboard.css'; // Ensure you have your CSS
 
-const UserDashboard = () => {
-  const [activeTab, setActiveTab] = useState('appointments');
-  const [appointments, setAppointments] = useState([]);
+const UserDashBoard = () => {
+  const navigate = useNavigate();
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
-    const savedData = JSON.parse(localStorage.getItem("myAppointments")) || [];
-    setAppointments(savedData);
-  }, []);
+    // 1. Get user data from local storage
+    const storedUser = localStorage.getItem('user');
+    const token = localStorage.getItem('token');
+
+    // 2. If no user or token, kick them back to login
+    if (!storedUser || !token) {
+      navigate('/login');
+    } else {
+      setUser(JSON.parse(storedUser));
+    }
+  }, [navigate]);
+
+  const handleLogout = () => {
+    localStorage.removeItem('user');
+    localStorage.removeItem('token');
+    navigate('/login');
+  };
+
+  if (!user) return <div>Loading...</div>;
 
   return (
     <div className="dashboard-container">
-      {/* ... sidebar ... */}
+      <h1>Welcome, {user.name}!</h1>
+      <p>Role: {user.role}</p>
+      <button onClick={handleLogout} className="logout-btn">Logout</button>
       
-      <div className="dashboard-content">
-        {activeTab === 'appointments' && (
-          <div>
-            <h2>My Appointments</h2>
-            <div className="appointments-list">
-              {appointments.length === 0 && <p>No appointments yet.</p>}
-
-              {appointments.map(app => (
-                <div key={app.id} className="appointment-card">
-                  <div>
-                    <h3>{app.lawyer}</h3>
-                    <p>📅 {app.date} at {app.time}</p>
-                  </div>
-                  <span className={`status-badge ${app.status.toLowerCase()}`}>
-                    {app.status}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-        {/* ... profile tab ... */}
-      </div>
+      {/* Your other Dashboard Content goes here */}
     </div>
   );
 };
 
-export default UserDashboard;
+export default UserDashBoard;
