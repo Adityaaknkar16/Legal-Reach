@@ -1,40 +1,238 @@
 .dashboard-container {
-  max-width: 1000px;
+  max-width: 1200px;
   margin: 0 auto;
-  padding: 20px;
-  font-family: sans-serif;
+  padding: 30px 20px;
+  background: linear-gradient(135deg, #f5f5f5 0%, #ffffff 100%);
+  min-height: 100vh;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.dashboard-header {
+  text-align: center;
+  margin-bottom: 40px;
+  padding-bottom: 20px;
+  border-bottom: 3px solid #1976d2;
+}
+
+.dashboard-header h1 {
+  color: #1976d2;
+  font-size: 2.5rem;
+  margin: 0 0 10px 0;
+}
+
+.dashboard-header p {
+  color: #666;
+  font-size: 1.1rem;
+  margin: 0;
 }
 
 .section {
   margin-bottom: 40px;
+  background: white;
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-.card-list {
+.section h3 {
+  color: #333;
+  font-size: 1.5rem;
+  margin-bottom: 20px;
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.empty-state {
+  color: #999;
+  font-size: 1.1rem;
+  text-align: center;
+  padding: 30px;
+  margin: 0;
+}
+
+/* Request Cards */
+.request-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.request-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  background: #f9f9f9;
+  border: 2px solid #e0e0e0;
+  border-radius: 10px;
+  transition: all 0.3s ease;
+}
+
+.request-card:hover {
+  background: #f0f8ff;
+  border-color: #1976d2;
+  box-shadow: 0 2px 8px rgba(25, 118, 210, 0.2);
+}
+
+.request-info h4 {
+  margin: 0 0 5px 0;
+  color: #333;
+  font-size: 1.1rem;
+}
+
+.request-info .email {
+  margin: 0;
+  color: #999;
+  font-size: 0.9rem;
+}
+
+.request-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-accept,
+.btn-reject {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
+  font-size: 0.95rem;
+}
+
+.btn-accept {
+  background-color: #4caf50;
+  color: white;
+}
+
+.btn-accept:hover {
+  background-color: #45a049;
+  transform: scale(1.05);
+}
+
+.btn-reject {
+  background-color: #f44336;
+  color: white;
+}
+
+.btn-reject:hover {
+  background-color: #da190b;
+  transform: scale(1.05);
+}
+
+/* Client Cards */
+.client-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 20px;
 }
 
-.card {
-  background: #fff;
-  border: 1px solid #ddd;
-  padding: 20px;
-  border-radius: 8px;
-  width: 250px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+.client-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 25px;
+  background: linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%);
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  transition: all 0.3s ease;
   text-align: center;
 }
 
-.card button {
-  margin-top: 10px;
-  padding: 8px 16px;
-  background-color: #007bff;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
+.client-card:hover {
+  border-color: #1976d2;
+  box-shadow: 0 8px 24px rgba(25, 118, 210, 0.2);
+  transform: translateY(-5px);
 }
 
-.card button:hover {
-  background-color: #0056b3;
+.client-avatar {
+  width: 80px;
+  height: 80px;
+  background-color: #1976d2;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  font-weight: bold;
+  margin-bottom: 15px;
+}
+
+.client-info h4 {
+  margin: 0 0 5px 0;
+  color: #333;
+  font-size: 1.2rem;
+}
+
+.client-info .email {
+  margin: 0 0 20px 0;
+  color: #999;
+  font-size: 0.9rem;
+}
+
+.btn-chat {
+  padding: 12px 24px;
+  background-color: #1976d2;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
+  width: 100%;
+}
+
+.btn-chat:hover {
+  background-color: #1565c0;
+  transform: scale(1.05);
+}
+
+/* Logout Button */
+.btn-logout {
+  display: block;
+  margin: 40px auto 0;
+  padding: 12px 40px;
+  background-color: #ff6b6b;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 1rem;
+  transition: all 0.2s;
+}
+
+.btn-logout:hover {
+  background-color: #ff5252;
+  transform: scale(1.05);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .dashboard-header h1 {
+    font-size: 1.8rem;
+  }
+
+  .request-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+
+  .request-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .client-list {
+    grid-template-columns: 1fr;
+  }
+
+  .section {
+    padding: 20px;
+  }
 }

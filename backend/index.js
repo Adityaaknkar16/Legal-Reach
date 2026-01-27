@@ -18,13 +18,14 @@ const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: {
-    origin: "http://localhost:5173",
-    methods: ["GET", "POST", "PUT", "DELETE"]
+    origin: ["http://localhost:5173", "http://localhost:5174"],
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    credentials: true
   }
 });
 
 app.use(express.json());
-app.use(cors({ origin: "http://localhost:5173", credentials: true }));
+app.use(cors({ origin: ["http://localhost:5173", "http://localhost:5174"], credentials: true }));
 
 // MOUNT ROUTES
 app.use('/api/auth', authRoutes);
@@ -52,6 +53,26 @@ io.on("connection", (socket) => {
     }
     // Send to Receiver
     io.to(data.receiver).emit("receive_message", data);
+  });
+
+  socket.on("call_user", (data) => {
+    io.to(data.to).emit("incoming_call", {
+      from: data.from,
+      fromName: data.fromName,
+      type: data.type
+    });
+  });
+
+  socket.on("accept_call", (data) => {
+    io.to(data.to).emit("call_accepted");
+  });
+
+  socket.on("reject_call", (data) => {
+    io.to(data.to).emit("call_rejected");
+  });
+
+  socket.on("end_call", (data) => {
+    io.to(data.to).emit("call_ended");
   });
 });
 

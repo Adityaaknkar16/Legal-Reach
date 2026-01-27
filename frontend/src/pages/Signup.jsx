@@ -18,7 +18,7 @@ const Signup = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch('http://localhost:3000/api/auth/signup', {
+      const res = await fetch('http://localhost:3000/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
@@ -26,10 +26,10 @@ const Signup = () => {
       const data = await res.json();
       
       if (res.ok) {
-        alert("OTP Sent! Please check your email.");
-        navigate('/verify-otp', { state: { email: formData.email } });
+        alert("Account created! Please login.");
+        navigate('/login');
       } else {
-        alert(data.error || "Signup Failed");
+        alert(data.message || "Signup Failed");
       }
     } catch (error) {
       console.error(error);

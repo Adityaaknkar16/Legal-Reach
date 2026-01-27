@@ -52,4 +52,25 @@ router.get('/lawyers', async (req, res) => {
   }
 });
 
+// CREATE TEST USER (for testing)
+router.post('/test-user', async (req, res) => {
+  try {
+    const testUser = await User.findOne({ email: 'test@example.com' });
+    if (testUser) {
+      return res.json({ message: "Test user already exists", email: "test@example.com", password: "test123" });
+    }
+
+    const newUser = new User({ 
+      name: 'Test User', 
+      email: 'test@example.com', 
+      password: 'test123', 
+      role: 'client' 
+    });
+    await newUser.save();
+    res.json({ message: "Test user created", email: "test@example.com", password: "test123" });
+  } catch (error) {
+    res.status(500).json({ message: "Server Error" });
+  }
+});
+
 export default router;
