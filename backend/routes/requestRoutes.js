@@ -76,7 +76,7 @@ router.get('/status/:userId', protect, async (req, res) => {
   }
 });
 
-router.get('/my-connections', protect, async (req, res) => {
+router.get('/my-connections', protect, async (req , res) => {
     try {
         const myId = req.user._id || req.user.id;
         
@@ -88,7 +88,7 @@ router.get('/my-connections', protect, async (req, res) => {
         const connectedUsers = connections.map(conn => {
             return conn.sender._id.toString() === myId.toString() ? conn.receiver : conn.sender;
         });
-
+        
         res.json(connectedUsers);
     } catch (error) {
         console.error("My connections error:", error);
