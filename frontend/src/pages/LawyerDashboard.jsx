@@ -7,12 +7,16 @@ const LawyerDashboard = () => {
   const [requests, setRequests] = useState([]);
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem('user'));
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
+        setLoading(true);
+        setError(null);
         const token = localStorage.getItem('token');
         if (!token) {
           navigate('/login');
@@ -22,14 +26,15 @@ const LawyerDashboard = () => {
         const config = { headers: { Authorization: `Bearer ${token}` } };
 
         const reqResponse = await axios.get('http://localhost:3000/api/connect/pending', config);
-        setRequests(reqResponse.data);
+        setRequests(reqResponse.data || []);
 
         const clientResponse = await axios.get('http://localhost:3000/api/connect/my-connections', config);
-        setClients(clientResponse.data);
+        setClients(clientResponse.data || []);
         
         setLoading(false);
       } catch (error) {
         console.error("Error fetching dashboard:", error);
+        setError(error.response?.data?.message || "Failed to load dashboard data");
         setLoading(false);
       }
     };
@@ -39,27 +44,43 @@ const LawyerDashboard = () => {
 
   const handleAccept = async (id) => {
     try {
+      setError(null);
       const token = localStorage.getItem('token');
-      await axios.put(`http://localhost:3000/api/connect/accept/${id}`, {}, {
+      const response = await axios.put(`http://localhost:3000/api/connect/accept/${id}`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      
       // Remove the accepted request from the list
       setRequests(requests.filter(req => req._id !== id));
-      alert("Request accepted! Client added to your list.");
+      
+      // Fetch updated connections to add the client to the connected clients list immediately
+      const clientResponse = await axios.get('http://localhost:3000/api/connect/my-connections', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setClients(clientResponse.data || []);
+      
+      setSuccess("Request accepted! You can now chat with this client.");
+      setTimeout(() => setSuccess(null), 3000);
     } catch (error) {
       console.error("Accept error:", error);
-      alert("Failed to accept request");
+      setError(error.response?.data?.message || "Failed to accept request");
     }
   };
 
   const handleReject = async (id) => {
     try {
+      setError(null);
       const token = localStorage.getItem('token');
-      // Assuming we have a reject endpoint, or we can just remove it locally
+      await axios.put(`http://localhost:3000/api/connect/reject/${id}`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      // Remove the rejected request from the list
       setRequests(requests.filter(req => req._id !== id));
-      alert("Request rejected.");
+      setSuccess("Request rejected.");
+      setTimeout(() => setSuccess(null), 3000);
     } catch (error) {
       console.error("Reject error:", error);
+      setError(error.response?.data?.message || "Failed to reject request");
     }
   };
 
@@ -73,6 +94,9 @@ const LawyerDashboard = () => {
         <h1>⚖️ Lawyer Dashboard</h1>
         <p>Welcome, {user?.name}</p>
       </div>
+
+      {error && <div className="alert alert-error">{error}</div>}
+      {success && <div className="alert alert-success">{success}</div>}
 
       <div className="section">
         <h3>📩 Incoming Connection Requests</h3>
