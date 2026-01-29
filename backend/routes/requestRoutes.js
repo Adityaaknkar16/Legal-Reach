@@ -74,6 +74,7 @@ router.put('/reject/:id', protect, async (req, res) => {
     request.status = 'rejected';
     await request.save();
 
+    
     res.json({ message: "Request rejected." });
   } catch (error) {
     console.error("Reject request error:", error);
@@ -87,7 +88,7 @@ router.get('/status/:userId', protect, async (req, res) => {
     const request = await Request.findOne({
       $or: [
         { sender: myId, receiver: req.params.userId },
-        { sender: req.params.userId, receiver: myId }
+        { sender: req.params.userId, receiver: myId  }
       ]
     });
     
