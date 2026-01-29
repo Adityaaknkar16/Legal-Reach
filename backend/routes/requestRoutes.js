@@ -1,6 +1,6 @@
 import express from 'express';
 import Request from '../models/Request.js';
-import User from '../models/User.js';
+import User from '../models/user.js';
 import protect from '../middleware/authMiddleware.js';
 
 const router = express.Router();
@@ -54,6 +54,29 @@ router.put('/accept/:id', protect, async (req, res) => {
     res.json({ message: "Request Accepted. You can now chat!" });
   } catch (error) {
     console.error("Accept request error:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.put('/reject/:id', protect, async (req, res) => {
+  try {
+    const request = await Request.findById(req.params.id);
+    
+    if (!request) {
+      return res.status(404).json({ message: "Request not found." });
+    }
+
+    const myId = req.user._id || req.user.id;
+    if (request.receiver.toString() !== myId.toString()) {
+      return res.status(401).json({ message: "Not authorized." });
+    }
+
+    request.status = 'rejected';
+    await request.save();
+
+    res.json({ message: "Request rejected." });
+  } catch (error) {
+    console.error("Reject request error:", error);
     res.status(500).json({ error: error.message });
   }
 });
