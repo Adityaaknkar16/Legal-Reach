@@ -5,7 +5,7 @@ import bcrypt from 'bcryptjs';
 
 const router = express.Router();
 
-// REGISTER
+
 router.post('/register', async (req, res) => {
   try {
     const { name, email, password, role, specialization } = req.body;
@@ -20,7 +20,7 @@ router.post('/register', async (req, res) => {
   }
 });
 
-// LOGIN
+
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -31,8 +31,7 @@ router.post('/login', async (req, res) => {
     if (!isMatch) return res.status(400).json({ message: "Invalid credentials" });
 
     const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: "1h" });
-    
-    // Send user data along with token
+
     res.json({ 
         token, 
         user: { _id: user._id, name: user.name, email: user.email, role: user.role } 
@@ -42,7 +41,7 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// GET ALL LAWYERS (This was missing!)
+
 router.get('/lawyers', async (req, res) => {
   try {
     const lawyers = await User.find({ role: 'lawyer' }).select('-password');
@@ -52,7 +51,7 @@ router.get('/lawyers', async (req, res) => {
   }
 });
 
-// CREATE TEST USER (for testing)
+
 router.post('/test-user', async (req, res) => {
   try {
     const testUser = await User.findOne({ email: 'test@example.com' });
