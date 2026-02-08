@@ -1,0 +1,59 @@
+.call-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: black;
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+}
+
+.video-container {
+  flex: 1;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.user-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.my-video {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  width: 200px;
+  height: 150px;
+  border: 2px solid white;
+  border-radius: 10px;
+  object-fit: cover;
+  z-index: 2001;
+}
+
+.calling-text {
+  color: white;
+  font-size: 24px;
+}
+
+.call-controls {
+  padding: 20px;
+  display: flex;
+  justify-content: center;
+  background: rgba(0,0,0,0.5);
+}
+
+.btn-end {
+  background: red;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 20px;
+  font-size: 16px;
+  cursor: pointer;
+}

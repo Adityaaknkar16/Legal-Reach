@@ -7,8 +7,7 @@ const CallHistory = ({ userId }) => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetchCallHistory();
-  }, [userId]);
+    fetchCallHistory();}, [userId]);
 
   const fetchCallHistory = async () => {
     try {
@@ -18,7 +17,7 @@ const CallHistory = ({ userId }) => {
         headers: {
           Authorization: `Bearer ${token}`
         }
-      });
+          });
 
       if (response.data.success) {
         setCalls(response.data.calls);
@@ -87,7 +86,7 @@ const CallHistory = ({ userId }) => {
                 <td className="border p-3">
                   <span className={`px-3 py-1 rounded text-sm font-semibold ${
                     call.callType === 'video' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
-                  }`}>
+                        }`}>
                     {call.callType.toUpperCase()}
                   </span>
                 </td>

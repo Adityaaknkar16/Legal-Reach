@@ -1,0 +1,66 @@
+.call-notification {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+  z-index: 3000;
+  border: 1px solid #eee;
+  animation: slideIn 0.3s ease-out;
+  width: 300px;
+}
+
+.call-content h3 {
+  margin: 0 0 8px 0;
+  font-size: 1.1rem;
+  color: #1f2937;
+}
+
+.call-content p {
+  margin: 0 0 20px 0;
+  color: #4b5563;
+}
+
+.call-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.btn-answer {
+  flex: 1;
+  background: #10b981;
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+
+.btn-answer:hover {
+  background: #059669;
+}
+
+.btn-reject {
+  flex: 1;
+  background: #ef4444;
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+
+.btn-reject:hover {
+  background: #dc2626;
+}
+
+@keyframes slideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
