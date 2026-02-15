@@ -7,6 +7,9 @@ import Register from './pages/Register';
 import ServicePage from './pages/ServicePage';
 import LawyerDashboard from './pages/LawyerDashboard';
 import ChatPage from './pages/ChatPage';
+import About from './components/About';
+import Signup from './pages/Signup';
+import VerifyOtp from './pages/VerifyOtp'; 
 
 const App = () => {
   return (
@@ -16,15 +19,14 @@ const App = () => {
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        
-        {/* Client Page */}
         <Route path="/service" element={<ServicePage />} />
-        
-        {/* Lawyer Page - MAKE SURE THIS MATCHES THE LOGIN REDIRECT */}
         <Route path="/lawyer-dashboard" element={<LawyerDashboard />} />
-        
-        {/* Chat Page */}
+        <Route path="/about" element={<About />} />
         <Route path="/chat" element={<ChatPage />} />
+        <Route path="/signup" element={<Signup />} />
+        
+        {/* ✅ FIXED: Changed verifyOtp to verify-otp to match Register.jsx */}
+        <Route path="/verify-otp" element={<VerifyOtp />} />
       </Routes>
     </Router>
   );

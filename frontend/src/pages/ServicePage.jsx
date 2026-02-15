@@ -17,7 +17,9 @@ const ServicePage = () => {
   const [incomingCall, setIncomingCall] = useState(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  
   const user = JSON.parse(localStorage.getItem('user'));
+  
   const bottomRef = useRef(null);
   const fileInputRef = useRef(null);
   const photoInputRef = useRef(null);
@@ -25,7 +27,6 @@ const ServicePage = () => {
   const remoteVideoRef = useRef(null);
 
   useEffect(() => {
-    // Check if user is logged in
     const token = localStorage.getItem('token');
     if (!token || !user) {
       navigate('/login');
@@ -50,7 +51,7 @@ const ServicePage = () => {
     };
 
     fetchData();
-  }, [navigate, user]);
+  }, []);
 
   useEffect(() => {
     if (selectedChat) {
@@ -67,7 +68,7 @@ const ServicePage = () => {
         .then((data) => setChatMessages(data))
         .catch((err) => console.log("Error fetching chat history:", err));
     }
-  }, [selectedChat, user._id]);
+  }, [selectedChat, user?._id]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -132,7 +133,6 @@ const ServicePage = () => {
     setCallType('audio');
     setCallActive(true);
     
-    // Add notification to chat
     const callNotification = {
       sender: user._id,
       receiver: selectedChat._id,
@@ -156,7 +156,6 @@ const ServicePage = () => {
     setCallType('video');
     setCallActive(true);
 
-    // Add notification to chat
     const callNotification = {
       sender: user._id,
       receiver: selectedChat._id,
@@ -166,7 +165,6 @@ const ServicePage = () => {
     };
     setChatMessages((prev) => [...prev, callNotification]);
 
-    // Request camera and microphone access
     navigator.mediaDevices.getUserMedia({ audio: true, video: true })
       .then(stream => {
         if (videoRef.current) {
@@ -251,7 +249,6 @@ const ServicePage = () => {
     setCallType(null);
   };
 
-  // Peer connection event handlers
   useEffect(() => {
     socket.on("call_rejected", () => {
       setCallActive(false);

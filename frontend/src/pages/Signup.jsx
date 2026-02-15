@@ -26,8 +26,8 @@ const Signup = () => {
       const data = await res.json();
       
       if (res.ok) {
-        alert("Account created! Please login.");
-        navigate('/login');
+        alert("OTP sent to your email. Please verify.");
+        navigate('/verify-otp', { state: { email: formData.email } });
       } else {
         alert(data.message || "Signup Failed");
       }
@@ -36,8 +36,6 @@ const Signup = () => {
       alert("Backend not connected");
     }
   };
-
-
 
   return (
     <div className="auth-container">
@@ -105,6 +103,7 @@ const Signup = () => {
           </div>
 
           <button type="submit" className="auth-btn" style={{ marginTop: '10px' }}>Sign Up</button>
+       
         </form>
         <p style={{ marginTop: '15px' }}>Already have an account? <Link to="/login">Login</Link></p>
       </div>

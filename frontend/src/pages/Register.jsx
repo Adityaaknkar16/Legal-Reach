@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import './Auth.css';  // <--- FIXED: Single dot means "current folder"
+import './Auth.css';
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -22,8 +22,8 @@ const Register = () => {
     e.preventDefault();
     try {
       await axios.post('http://localhost:3000/api/auth/register', formData);
-      alert("Registration Successful! Please Login.");
-      navigate('/login');
+      alert("Registration Successful! OTP sent to your email.");
+      navigate('/verify-otp', { state: { email: formData.email } });
     } catch (err) {
       alert("Error registering. User might already exist.");
     }
@@ -47,7 +47,11 @@ const Register = () => {
         )}
 
         <button type="submit">Register</button>
-        <p onClick={() => navigate('/login')}>Already have an account? Login</p>
+        
+        <p onClick={() => navigate('/login')} style={{cursor: 'pointer'}}>
+          Already have an account? Login
+        </p>
+        
       </form>
     </div>
   );

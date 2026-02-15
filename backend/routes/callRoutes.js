@@ -1,157 +1,122 @@
 import express from 'express';
 import Call from '../models/Call.js';
-import authMiddleware from '../middleware/authMiddleware.js';
+import { protect } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-// Get call history for a user
-router.get('/history', authMiddleware, async (req, res) => {
+router.post('/initiate', protect, async (req, res) => {
   try {
-    const userId = req.user.id;
-    const calls = await Call.find({
-      $or: [{ callerId: userId }, { receiverId: userId }]
-    })
-      .populate('callerId', 'name email')
-      .populate('receiverId', 'name email')
-      .sort({ createdAt: -1 });
+    const { receiverId, callType } = req.body;
 
-    res.status(200).json({
-      success: true,
-      calls
+    const newCall = new Call({
+      caller: req.user._id,        
+      receiver: receiverId,       
+      callerId: req.user._id,      
+      receiverId: receiverId,      
+      callType,
+      status: 'pending'       
     });
+
+    await newCall.save();
+    
+    await newCall.populate('caller', 'name email');
+    await newCall.populate('receiver', 'name email');
+
+    res.status(201).json({ success: true, call: newCall });
   } catch (error) {
-    console.error('Error fetching call history:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching call history'
-    });
+    console.error("Error initiating call:", error);
+    res.status(500).json({ success: false, message: 'Server Error' });
   }
 });
 
-// Create a new call record
-router.post('/initiate', authMiddleware, async (req, res) => {
+router.put('/:id/status', protect, async (req, res) => {
   try {
-    const { receiverId, callType } = req.body;
-    const callerId = req.user.id;
+    const { status } = req.body;
+    const callId = req.params.id;
 
-    if (!receiverId || !callType) {
-      return res.status(400).json({
-        success: false,
-        message: 'receiverId and callType are required'
-      });
+    let updateData = { status };
+    const now = new Date();
+
+    if (status === 'accepted') {
+      updateData.startTime = now;
+    } 
+    else if (status === 'ended') {
+      updateData.endTime = now;
+      
+      const existingCall = await Call.findById(callId);
+      if (existingCall && existingCall.startTime) {
+        const durationInSeconds = Math.round((now - new Date(existingCall.startTime)) / 1000);
+        updateData.duration = durationInSeconds;
+      }
     }
 
-    if (!['audio', 'video'].includes(callType)) {
-      return res.status(400).json({
-        success: false,
-        message: 'callType must be audio or video'
+    const updatedCall = await Call.findByIdAndUpdate(
+      callId, 
+      updateData,
+      { new: true }
+    );
+
+    if (!updatedCall) {
+        return res.status(404).json({ success: false, message: 'Call not found' });
+    }
+
+    res.json({ success: true, call: updatedCall });
+  } catch (error) {
+    console.error("Error updating call:", error);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+});
+
+router.get('/history', protect, async (req, res) => {
+    try {
+        const userId = req.user._id;
+
+        const calls = await Call.find({
+            $or: [{ caller: userId }, { receiver: userId }, { callerId: userId }, { receiverId: userId }]
+        })
+        .populate('caller', 'name email')   
+        .populate('receiver', 'name email') 
+        .sort({ createdAt: -1 });            
+
+        res.json(calls);
+    } catch (error) {
+        console.error("Error fetching history:", error);
+        res.status(500).json({ message: "Error fetching call history" });
+    }
+});
+
+router.post('/start', async (req, res) => {
+  try {
+    console.log("Incoming Call Request:", req.body);
+
+    const callerId = req.body.caller || req.body.from || req.body.sender || req.body.callerId;
+    const receiverId = req.body.receiver || req.body.to || req.body.userToCall || req.body.receiverId;
+
+    if (!callerId || !receiverId) {
+      console.error("Missing Data:", { callerId, receiverId });
+      return res.status(400).json({ 
+        message: "Missing caller or receiver ID", 
+        received: req.body 
       });
     }
 
     const newCall = new Call({
-      callerId,
-      receiverId,
-      callType,
-      status: 'pending'
+      caller: callerId,
+      receiver: receiverId,
+      callerId: callerId,
+      receiverId: receiverId,
+      status: 'pending',
+      startTime: new Date()
     });
 
-    const savedCall = await newCall.save();
-    const populatedCall = await savedCall.populate('callerId', 'name email');
+    await newCall.save();
+    console.log("Call saved successfully:", newCall._id);
 
-    res.status(201).json({
-      success: true,
-      call: populatedCall
-    });
+    res.status(201).json(newCall);
+
   } catch (error) {
-    console.error('Error initiating call:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error initiating call'
-    });
-  }
-});
-
-// Update call status
-router.put('/:callId/status', authMiddleware, async (req, res) => {
-  try {
-    const { callId } = req.params;
-    const { status } = req.body;
-    const userId = req.user.id;
-
-    if (!['pending', 'accepted', 'rejected', 'ended'].includes(status)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid status value'
-      });
-    }
-
-    const call = await Call.findById(callId);
-    if (!call) {
-      return res.status(404).json({
-        success: false,
-        message: 'Call not found'
-      });
-    }
-
-    // Verify user is involved in the call
-    if (call.callerId.toString() !== userId && call.receiverId.toString() !== userId) {
-      return res.status(403).json({
-        success: false,
-        message: 'Not authorized to update this call'
-      });
-    }
-
-    call.status = status;
-
-    if (status === 'accepted' && !call.startTime) {
-      call.startTime = new Date();
-    }
-
-    if (status === 'ended' && call.startTime) {
-      call.endTime = new Date();
-      call.duration = Math.floor((call.endTime - call.startTime) / 1000);
-    }
-
-    const updatedCall = await call.save();
-
-    res.status(200).json({
-      success: true,
-      call: updatedCall
-    });
-  } catch (error) {
-    console.error('Error updating call status:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error updating call status'
-    });
-  }
-});
-
-// Get specific call details
-router.get('/:callId', authMiddleware, async (req, res) => {
-  try {
-    const { callId } = req.params;
-    const call = await Call.findById(callId)
-      .populate('callerId', 'name email')
-      .populate('receiverId', 'name email');
-
-    if (!call) {
-      return res.status(404).json({
-        success: false,
-        message: 'Call not found'
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      call
-    });
-  } catch (error) {
-    console.error('Error fetching call details:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching call details'
-    });
+    console.error("Error in start route:", error);
+    res.status(500).json({ message: "Failed to initiate call", error: error.message });
   }
 });
 
