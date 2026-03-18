@@ -1,0 +1,227 @@
+.lawyer-register-wrapper {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+  padding: 20px;
+}
+
+.lawyer-register-container {
+  max-width: 900px;
+  margin: 0 auto;
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.lawyer-register-header {
+  background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+  color: white;
+  padding: 30px;
+  text-align: center;
+}
+
+.lawyer-register-header h1 {
+  margin: 0 0 10px 0;
+  font-size: 32px;
+}
+
+.lawyer-register-header p {
+  margin: 0;
+  opacity: 0.9;
+  font-size: 16px;
+}
+
+.lawyer-register-content {
+  padding: 30px;
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
+}
+
+.info-banner {
+  background: #fef3c7;
+  border-left: 4px solid #f59e0b;
+  padding: 20px;
+  margin-bottom: 30px;
+  border-radius: 8px;
+}
+
+.info-banner h3 {
+  margin: 0 0 10px 0;
+  color: #92400e;
+  font-size: 18px;
+}
+
+.info-banner ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.info-banner li {
+  color: #92400e;
+  margin: 5px 0;
+}
+
+.lawyer-form {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+.form-section {
+  background: #f9fafb;
+  padding: 25px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+}
+
+.form-section h2 {
+  margin: 0 0 20px 0;
+  color: #1e3a8a;
+  font-size: 20px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #3b82f6;
+}
+
+.input-group {
+  margin-bottom: 20px;
+}
+
+.input-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #374151;
+  font-size: 14px;
+}
+
+.input-group input,
+.input-group select,
+.input-group textarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: inherit;
+  transition: border-color 0.3s;
+  box-sizing: border-box;
+}
+
+.input-group input:focus,
+.input-group select:focus,
+.input-group textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
+.input-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+
+.upload-group {
+  margin-bottom: 20px;
+}
+
+.upload-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #374151;
+  font-size: 14px;
+}
+
+.upload-group label.required {
+  color: #dc2626;
+}
+
+.upload-group input[type="file"] {
+  width: 100%;
+  padding: 10px;
+  border: 2px dashed #d1d5db;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.upload-success {
+  display: block;
+  color: #059669;
+  font-size: 13px;
+  margin-top: 5px;
+  font-weight: 600;
+}
+
+.submit-button {
+  width: 100%;
+  padding: 15px;
+  background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.submit-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+
+.submit-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.form-links {
+  text-align: center;
+  margin-top: 20px;
+}
+
+.form-links p {
+  margin: 8px 0;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.form-links a {
+  color: #3b82f6;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.form-links a:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 768px) {
+  .lawyer-register-wrapper {
+    padding: 10px;
+  }
+
+  .lawyer-register-content {
+    padding: 20px;
+  }
+
+  .input-row {
+    grid-template-columns: 1fr;
+  }
+
+  .form-section {
+    padding: 20px;
+  }
+}
+
+.lawyer-register-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.lawyer-register-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.lawyer-register-content::-webkit-scrollbar-thumb {
+  background: #3b82f6;
+  border-radius: 4px;
+}

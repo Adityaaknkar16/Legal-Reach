@@ -4,15 +4,23 @@ import './Login.css';
 
 const Signup = () => {
   const navigate = useNavigate();
+  const [selectedRole, setSelectedRole] = useState('client');
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    password: '',
-    role: 'client'
+    password: ''
   });
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleRoleClick = (role) => {
+    if (role === 'lawyer') {
+      navigate('/lawyer-register');
+    } else {
+      setSelectedRole('client');
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -21,7 +29,7 @@ const Signup = () => {
       const res = await fetch('http://localhost:3000/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({ ...formData, role: 'client' }),
       });
       const data = await res.json();
       
@@ -41,8 +49,52 @@ const Signup = () => {
     <div className="auth-container">
       <div className="auth-box">
         <h2>Create Account</h2>
+        
+        <div style={{ 
+          display: 'flex', 
+          gap: '10px', 
+          marginBottom: '30px',
+          padding: '5px',
+          backgroundColor: '#f0f0f0',
+          borderRadius: '10px'
+        }}>
+          <button
+            type="button"
+            onClick={() => handleRoleClick('client')}
+            style={{
+              flex: 1,
+              padding: '12px',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: '600',
+              backgroundColor: selectedRole === 'client' ? '#1e3a8a' : 'transparent',
+              color: selectedRole === 'client' ? 'white' : '#666',
+              transition: 'all 0.3s'
+            }}
+          >
+            👤 Client
+          </button>
+          <button
+            type="button"
+            onClick={() => handleRoleClick('lawyer')}
+            style={{
+              flex: 1,
+              padding: '12px',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: '600',
+              backgroundColor: 'transparent',
+              color: '#666',
+              transition: 'all 0.3s'
+            }}
+          >
+            ⚖️ Lawyer
+          </button>
+        </div>
+
         <form onSubmit={handleSubmit}>
-          
           <div style={{ marginBottom: '15px' }}>
             <label style={{ display: 'block', marginBottom: '5px' }}>Name</label>
             <input 
@@ -81,31 +133,14 @@ const Signup = () => {
             />
           </div>
 
-          <div style={{ marginBottom: '15px' }}>
-            <label style={{ display: 'block', marginBottom: '5px' }}>Role</label>
-            <select 
-              name="role" 
-              onChange={handleChange} 
-              className="form-control"
-              style={{
-                width: '100%',
-                padding: '10px',
-                borderRadius: '5px',
-                border: '1px solid #ccc',
-                backgroundColor: 'white',
-                fontSize: '16px',
-                height: '45px'
-              }}
-            >
-              <option value="client">Client (Looking for a Lawyer)</option>
-              <option value="lawyer">Lawyer (Legal Professional)</option>
-            </select>
-          </div>
-
-          <button type="submit" className="auth-btn" style={{ marginTop: '10px' }}>Sign Up</button>
-       
+          <button type="submit" className="auth-btn" style={{ marginTop: '10px', width: '100%' }}>
+            Sign Up as Client
+          </button>
         </form>
-        <p style={{ marginTop: '15px' }}>Already have an account? <Link to="/login">Login</Link></p>
+        
+        <p style={{ marginTop: '15px', textAlign: 'center' }}>
+          Already have an account? <Link to="/login">Login</Link>
+        </p>
       </div>
     </div>
   );

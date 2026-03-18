@@ -1,78 +1,164 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import axios from 'axios';
 import './FindLawyers.css';
-
-const allLawyers = [
-  { id: 1, name: "Adv. Amit Sharma", location: "Pune", category: "Criminal", experience: "12 years", fees: "₹2000/hr" },
-  { id: 2, name: "Adv. Priya Desai", location: "Mumbai", category: "Family", experience: "8 years", fees: "₹1500/hr" },
-  { id: 3, name: "Adv. Rajesh Verma", location: "Delhi", category: "Corporate", experience: "15 years", fees: "₹3000/hr" },
-  { id: 4, name: "Adv. Sneha Patil", location: "Pune", category: "Property", experience: "5 years", fees: "₹1000/hr" },
-  { id: 5, name: "Adv. Rahul Nair", location: "Bangalore", category: "Criminal", experience: "10 years", fees: "₹2500/hr" },
-];
 
 const FindLawyers = () => {
   const location = useLocation();
-  const [searchTerm, setSearchTerm] = useState(location.state?.query || "");
-  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [lawyers, setLawyers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchName, setSearchName] = useState(location.state?.searchName || location.state?.query || '');
+  const [searchCity, setSearchCity] = useState(location.state?.searchCity || '');
+  const [selectedSpecialization, setSelectedSpecialization] = useState(location.state?.filterSpecialization || '');
 
-  const filteredLawyers = allLawyers.filter(lawyer => {
-    return (
-      (selectedCategory === "All" || lawyer.category === selectedCategory) &&
-      (lawyer.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-       lawyer.location.toLowerCase().includes(searchTerm.toLowerCase()) || 
-       lawyer.category.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
+  const specializations = [
+    'All Specializations',
+    'Criminal Defense',
+    'Family Law',
+    'Corporate Law',
+    'Property Law',
+    'Civil Litigation',
+    'Consumer Law',
+    'Labor & Employment Law',
+    'Tax Law',
+    'Intellectual Property Law',
+    'Constitutional Law'
+  ];
+
+  useEffect(() => {
+    fetchLawyers();
+  }, []);
+
+  const fetchLawyers = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get('http://localhost:3000/api/auth/lawyers');
+      setLawyers(response.data);
+    } catch (error) {
+      console.error('Error fetching lawyers:', error);
+      setLawyers([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredLawyers = lawyers.filter(lawyer => {
+    const matchesName = !searchName || lawyer.name.toLowerCase().includes(searchName.toLowerCase());
+    const matchesCity = !searchCity || lawyer.city?.toLowerCase().includes(searchCity.toLowerCase());
+    const matchesSpec = !selectedSpecialization || 
+                        selectedSpecialization === 'All Specializations' || 
+                        lawyer.specialization === selectedSpecialization;
+    return matchesName && matchesCity && matchesSpec;
   });
 
   return (
     <div className="find-lawyers-container">
       <div className="filters-sidebar">
-        <h3>Filters</h3>
+        <h3>Filter Lawyers</h3>
         
         <div className="filter-group">
-          <label>Search Name/City</label>
+          <label>Lawyer Name</label>
           <input 
             type="text" 
-            placeholder="e.g. Pune" 
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Enter name" 
+            value={searchName}
+            onChange={(e) => setSearchName(e.target.value)}
+            className="filter-input"
           />
         </div>
         
         <div className="filter-group">
-          <label>Category</label>
-          <select onChange={(e) => setSelectedCategory(e.target.value)}>
-            <option value="All">All Categories</option>
-            <option value="Criminal">Criminal</option>
-            <option value="Family">Family</option>
-            <option value="Corporate">Corporate</option>
-            <option value="Property">Property</option>
+          <label>City</label>
+          <input 
+            type="text" 
+            placeholder="e.g. Pune" 
+            value={searchCity}
+            onChange={(e) => setSearchCity(e.target.value)}
+            className="filter-input"
+          />
+        </div>
+        
+        <div className="filter-group">
+          <label>Specialization</label>
+          <select 
+            value={selectedSpecialization || 'All Specializations'}
+            onChange={(e) => setSelectedSpecialization(e.target.value === 'All Specializations' ? '' : e.target.value)}
+            className="filter-select"
+          >
+            {specializations.map((spec, index) => (
+              <option key={index} value={spec}>{spec}</option>
+            ))}
           </select>
         </div>
+
+        <button 
+          onClick={() => {
+            setSearchName('');
+            setSearchCity('');
+            setSelectedSpecialization('');
+          }}
+          className="clear-filters-btn"
+        >
+          Clear Filters
+        </button>
       </div>
 
       <div className="results-area">
-        <h2>{filteredLawyers.length} Lawyers Found</h2>
-        
-        <div className="results-grid">
-          {filteredLawyers.map(lawyer => (
-            <div key={lawyer.id} className="result-card">
-              <div className="card-header">
-                <h3>{lawyer.name}</h3>
-                <span className="badge">{lawyer.category}</span>
-              </div>
-              <p> {lawyer.location}</p>
-              <p> {lawyer.experience} Experience</p>
-              <p> {lawyer.fees}</p>
-              
-              <Link to={`/lawyer/${lawyer.id}`}>
-                <button className="view-profile-btn">View Profile</button>
-              </Link>
-            </div>
-          ))}
-          
-          {filteredLawyers.length === 0 && <p>No lawyers found matching your criteria.</p>}
+        <div className="results-header">
+          <h2>{filteredLawyers.length} Lawyers Found</h2>
+          {selectedSpecialization && selectedSpecialization !== 'All Specializations' && (
+            <span className="filter-badge">{selectedSpecialization}</span>
+          )}
         </div>
+        
+        {loading ? (
+          <div className="loading">Loading lawyers...</div>
+        ) : (
+          <div className="results-grid">
+            {filteredLawyers.map(lawyer => (
+              <div key={lawyer._id} className="result-card">
+                <div className="card-header">
+                  <h3>{lawyer.name}</h3>
+                  <span className="badge">{lawyer.specialization}</span>
+                </div>
+                
+                <div className="card-details">
+                  <div className="detail-item">
+                    <strong>Location:</strong> {lawyer.city}
+                  </div>
+                  <div className="detail-item">
+                    <strong>Experience:</strong> {lawyer.experience || 'Not specified'}
+                  </div>
+                  {lawyer.barCouncilRegNumber && (
+                    <div className="detail-item">
+                      <strong>Bar Council:</strong> {lawyer.barCouncilRegNumber}
+                    </div>
+                  )}
+                  {lawyer.phone && (
+                    <div className="detail-item">
+                      <strong>Contact:</strong> {lawyer.phone}
+                    </div>
+                  )}
+                </div>
+
+                {lawyer.bio && (
+                  <p className="lawyer-bio">{lawyer.bio.substring(0, 120)}...</p>
+                )}
+                
+                <Link to={`/lawyer/${lawyer._id}`}>
+                  <button className="view-profile-btn">View Full Profile</button>
+                </Link>
+              </div>
+            ))}
+            
+            {filteredLawyers.length === 0 && (
+              <div className="no-results">
+                <h3>No lawyers found</h3>
+                <p>Try adjusting your search criteria</p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

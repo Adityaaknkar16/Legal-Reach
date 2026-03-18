@@ -12,8 +12,6 @@ const ServicePage = () => {
   const [selectedChat, setSelectedChat] = useState(null);
   const [chatMessages, setChatMessages] = useState([]);
   const [chatMessage, setChatMessage] = useState("");
-  const [callActive, setCallActive] = useState(false);
-  const [callType, setCallType] = useState(null);
   const [incomingCall, setIncomingCall] = useState(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
@@ -23,8 +21,6 @@ const ServicePage = () => {
   const bottomRef = useRef(null);
   const fileInputRef = useRef(null);
   const photoInputRef = useRef(null);
-  const videoRef = useRef(null);
-  const remoteVideoRef = useRef(null);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -79,10 +75,18 @@ const ServicePage = () => {
       setIncomingCall(data);
     });
 
+    socket.on("incoming_call_notification", (data) => {
+      const accept = window.confirm(`${data.callerName} is calling you (${data.callType}). Accept?`);
+      if (accept) {
+        navigate(`/voice-call?roomId=${data.roomId}&userName=${user.name}&callType=${data.callType}`);
+      }
+    });
+
     return () => {
       socket.off("incoming_call");
+      socket.off("incoming_call_notification");
     };
-  }, []);
+  }, [user, navigate]);
 
   const sendMessage = async () => {
     if (chatMessage.trim() === "" || !selectedChat) return;
@@ -130,8 +134,7 @@ const ServicePage = () => {
   const startAudioCall = () => {
     if (!selectedChat) return;
     
-    setCallType('audio');
-    setCallActive(true);
+    const roomId = `audio_${user._id}_${selectedChat._id}_${Date.now()}`;
     
     const callNotification = {
       sender: user._id,
@@ -142,19 +145,23 @@ const ServicePage = () => {
     };
     setChatMessages((prev) => [...prev, callNotification]);
     
-    socket.emit("call_user", {
-      to: selectedChat._id,
-      from: user._id,
-      type: 'audio',
-      fromName: user.name
+    socket.emit("notify_call", {
+      callerId: user._id,
+      receiverId: selectedChat._id,
+      callerName: user.name,
+      roomId: roomId,
+      callType: 'audio'
     });
+
+    setTimeout(() => {
+      navigate(`/voice-call?roomId=${roomId}&userName=${user.name}&callType=audio`);
+    }, 1000);
   };
 
   const startVideoCall = () => {
     if (!selectedChat) return;
 
-    setCallType('video');
-    setCallActive(true);
+    const roomId = `video_${user._id}_${selectedChat._id}_${Date.now()}`;
 
     const callNotification = {
       sender: user._id,
@@ -165,120 +172,26 @@ const ServicePage = () => {
     };
     setChatMessages((prev) => [...prev, callNotification]);
 
-    navigator.mediaDevices.getUserMedia({ audio: true, video: true })
-      .then(stream => {
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-        }
-        
-        socket.emit("call_user", {
-          to: selectedChat._id,
-          from: user._id,
-          type: 'video',
-          fromName: user.name
-        });
-      })
-      .catch(err => {
-        console.error("Error accessing media devices:", err);
-        alert("Please allow camera and microphone access");
-        setCallActive(false);
-        setCallType(null);
-      });
+    socket.emit("notify_call", {
+      callerId: user._id,
+      receiverId: selectedChat._id,
+      callerName: user.name,
+      roomId: roomId,
+      callType: 'video'
+    });
+
+    setTimeout(() => {
+      navigate(`/voice-call?roomId=${roomId}&userName=${user.name}&callType=video`);
+    }, 1000);
   };
-
-  const acceptCall = () => {
-    const acceptNotification = {
-      sender: user._id,
-      receiver: selectedChat._id,
-      message: `✓ Accepted the ${incomingCall?.type} call`,
-      createdAt: new Date(),
-      isSystemMessage: true
-    };
-    setChatMessages((prev) => [...prev, acceptNotification]);
-
-    if (incomingCall?.type === 'video') {
-      navigator.mediaDevices.getUserMedia({ audio: true, video: true })
-        .then(stream => {
-          if (videoRef.current) {
-            videoRef.current.srcObject = stream;
-          }
-        });
-    }
-    
-    socket.emit("accept_call", {
-      to: incomingCall.from
-    });
-    setIncomingCall(null);
-    setCallActive(true);
-    setCallType(incomingCall?.type);
-  };
-
-  const rejectCall = () => {
-    const rejectNotification = {
-      sender: user._id,
-      receiver: selectedChat._id,
-      message: `✗ Rejected the ${incomingCall?.type} call`,
-      createdAt: new Date(),
-      isSystemMessage: true
-    };
-    setChatMessages((prev) => [...prev, rejectNotification]);
-
-    socket.emit("reject_call", {
-      to: incomingCall.from
-    });
-    setIncomingCall(null);
-  };
-
-  const endCall = () => {
-    const endNotification = {
-      sender: user._id,
-      receiver: selectedChat._id,
-      message: `📵 Ended the call`,
-      createdAt: new Date(),
-      isSystemMessage: true
-    };
-    setChatMessages((prev) => [...prev, endNotification]);
-
-    if (videoRef.current?.srcObject) {
-      videoRef.current.srcObject.getTracks().forEach(track => track.stop());
-    }
-    socket.emit("end_call", {
-      to: selectedChat._id
-    });
-    setCallActive(false);
-    setCallType(null);
-  };
-
-  useEffect(() => {
-    socket.on("call_rejected", () => {
-      setCallActive(false);
-      setCallType(null);
-      alert("Call rejected");
-    });
-
-    socket.on("call_ended", () => {
-      setCallActive(false);
-      setCallType(null);
-      if (videoRef.current?.srcObject) {
-        videoRef.current.srcObject.getTracks().forEach(track => track.stop());
-      }
-    });
-
-    return () => {
-      socket.off("call_rejected");
-      socket.off("call_ended");
-    };
-  }, []);
 
   const sendRequest = async (lawyerId) => {
     try {
         const token = localStorage.getItem('token');
-        console.log('Token in localStorage:', token ? 'Present' : 'Missing');
         
         if (!token) return alert("Please login first");
 
         const config = { headers: { Authorization: `Bearer ${token}` } };
-        console.log('Sending request with config:', config);
         
         const response = await axios.post('http://localhost:3000/api/connect/send', { lawyerId }, config);
         alert("Request Sent!");
@@ -347,13 +260,6 @@ const ServicePage = () => {
           </div>
 
           <div className="chat-messages-sidebar">
-            {callActive && callType && (
-              <div className="call-status-banner">
-                <span>{callType === 'video' ? '📹' : '📞'} {callType === 'video' ? 'Video' : 'Audio'} Call in Progress</span>
-                <button className="end-call-btn-banner" onClick={endCall}>End Call</button>
-              </div>
-            )}
-
             {chatMessages.map((msg, index) => (
               msg.isSystemMessage ? (
                 <div key={index} className="system-message">
@@ -408,8 +314,11 @@ const ServicePage = () => {
           <div className="incoming-call-content">
             <p className="incoming-call-text">{incomingCall.fromName} is calling... ({incomingCall.type === 'video' ? '📹' : '📞'})</p>
             <div className="incoming-call-actions">
-              <button className="accept-btn-inline" onClick={acceptCall}>✓ Accept</button>
-              <button className="reject-btn-inline" onClick={rejectCall}>✗ Reject</button>
+              <button className="accept-btn-inline" onClick={() => {
+                navigate(`/voice-call?roomId=${incomingCall.roomId}&userName=${user.name}&callType=${incomingCall.type}`);
+                setIncomingCall(null);
+              }}>✓ Accept</button>
+              <button className="reject-btn-inline" onClick={() => setIncomingCall(null)}>✗ Reject</button>
             </div>
           </div>
         </div>

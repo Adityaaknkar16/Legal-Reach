@@ -10,6 +10,9 @@ import requestRoutes from './routes/requestRoutes.js';
 import callRoutes from './routes/callRoutes.js';
 import Message from './models/Message.js';
 import Call from './models/Call.js';
+import newLawyerRoutes from './routes/newLawyerRoutes.js';
+import { socketAuthMiddleware } from './middleware/socketAuthMiddleware.js';
+import { encryptMessage, generateRoomKey } from './utils/cryptoUtils.js';
 
 dotenv.config();
 
@@ -23,38 +26,78 @@ const io = new Server(httpServer, {
   }
 });
 
-app.use(express.json());
-app.use(cors({ origin: ["http://localhost:5173", "http://localhost:5174"], credentials: true }));
+app.use(cors({
+  origin: ["http://localhost:5173", "http://localhost:5174"],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+}));
+
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/connect', requestRoutes);
 app.use('/api/calls', callRoutes); 
+app.use('/api/new-lawyer', newLawyerRoutes);
 
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("MongoDB Connected"))
   .catch((err) => console.log(err));
 
+io.use(socketAuthMiddleware);
+
 io.on("connection", (socket) => {
-  // --- Common room join for user-scoped communication ---
+  console.log(`User connected: ${socket.userId}`);
+  
   socket.on("join_room", (userId) => {
     socket.join(userId);
+    console.log(`User ${socket.userId} joined room ${userId}`);
   });
 
-  // --- Chat messaging ---
   socket.on("send_message", async (data) => {
     try {
-      const newMessage = new Message(data);
+      if (socket.userId !== data.sender) {
+        socket.emit("error", { message: "Unauthorized: sender mismatch" });
+        return;
+      }
+
+      const roomKey = generateRoomKey(data.sender, data.receiver);
+      const encryptedData = encryptMessage(data.message, roomKey);
+
+      const messageToSave = {
+        sender: data.sender,
+        receiver: data.receiver,
+        message: data.message,
+        encrypted: encryptedData.encrypted,
+        iv: encryptedData.iv,
+        authTag: encryptedData.authTag,
+        isEncrypted: true,
+        createdAt: data.createdAt || new Date()
+      };
+
+      const newMessage = new Message(messageToSave);
       await newMessage.save();
+
+      io.to(data.receiver).emit("receive_message", {
+        ...data,
+        encrypted: encryptedData.encrypted,
+        iv: encryptedData.iv,
+        authTag: encryptedData.authTag
+      });
+
     } catch (err) {
       console.log("Message save error:", err);
+      socket.emit("error", { message: "Failed to send message" });
     }
-    io.to(data.receiver).emit("receive_message", data);
   });
 
-  // --- Simple-Peer based calling (Audio/Video) ---
+  socket.on("notify_call", (data) => {
+    io.to(data.receiverId).emit("incoming_call_notification", data);
+  });
+
   socket.on("callUser", (data) => {
-    // data: { userToCall, signalData, from, name }
     io.to(data.userToCall).emit("callUser", {
       signal: data.signalData,
       from: data.from,
@@ -63,7 +106,6 @@ io.on("connection", (socket) => {
   });
 
   socket.on("answerCall", (data) => {
-    // data: { to, signal }
     io.to(data.to).emit("callAccepted", data.signal);
   });
 
@@ -71,79 +113,61 @@ io.on("connection", (socket) => {
     io.to(to).emit("callEnded");
   });
 
-  // --- WebRTC signaling for ChatPage (offer/answer/ICE, call lifecycle) ---
-
-  // Notify receiver about a new call (used for incoming popup)
   socket.on("initiate_call", (data) => {
-    // data: { callerId, receiverId, callType, callId, callerName }
     io.to(data.receiverId).emit("incoming_call_offer", data);
   });
 
-  // Forward SDP offer from caller to callee
   socket.on("send_offer", (data) => {
-    // data: { to, offer, callId }
     io.to(data.to).emit("receive_offer", {
       offer: data.offer,
       callId: data.callId,
     });
   });
 
-  // Forward SDP answer from callee to caller
   socket.on("send_answer", (data) => {
-    // data: { to, answer, callId }
     io.to(data.to).emit("receive_answer", {
       answer: data.answer,
       callId: data.callId,
     });
   });
 
-  // Forward ICE candidates between peers
   socket.on("send_ice_candidate", (data) => {
-    // data: { to, candidate, callId }
     io.to(data.to).emit("receive_ice_candidate", {
       candidate: data.candidate,
       callId: data.callId,
     });
   });
 
-  // Callee accepted WebRTC call
   socket.on("accept_call_webrtc", (data) => {
-    // data: { callerId, receiverId, callId }
     io.to(data.callerId).emit("call_accepted_webrtc", data);
   });
 
-  // Callee rejected WebRTC call
   socket.on("reject_call_webrtc", (data) => {
-    // data: { callerId, callId }
     io.to(data.callerId).emit("call_rejected_webrtc", data);
   });
 
-  // Either side ended WebRTC call
   socket.on("end_call_webrtc", (data) => {
-    // data: { to, callId }
     io.to(data.to).emit("call_ended_webrtc", data);
   });
 
-  // --- Simple call notifications used in ServicePage (non-WebRTC) ---
-
   socket.on("call_user", (data) => {
-    // data: { to, from, type, fromName }
     io.to(data.to).emit("incoming_call", data);
   });
 
   socket.on("accept_call", (data) => {
-    // data: { to }
     io.to(data.to).emit("call_accepted", data);
   });
 
   socket.on("reject_call", (data) => {
-    // data: { to }
     io.to(data.to).emit("call_rejected", data);
   });
 
   socket.on("end_call", (data) => {
-    // data: { to }
     io.to(data.to).emit("call_ended", data);
+  });
+
+  socket.on("disconnect", () => {
+    console.log(`User disconnected: ${socket.userId}`);
   });
 });
 

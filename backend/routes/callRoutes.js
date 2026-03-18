@@ -1,122 +1,88 @@
 import express from 'express';
-import Call from '../models/Call.js';
+import Message from '../models/Message.js';
+import User from '../models/user.js';
 import { protect } from '../middleware/authMiddleware.js';
+import { decryptMessage, generateRoomKey } from '../utils/cryptoUtils.js';
 
 const router = express.Router();
 
-router.post('/initiate', protect, async (req, res) => {
+router.get('/history/:userId', protect, async (req, res) => {
   try {
-    const { receiverId, callType } = req.body;
+    const { userId } = req.params;
+    const myId = req.user._id || req.user.id;
 
-    const newCall = new Call({
-      caller: req.user._id,        
-      receiver: receiverId,       
-      callerId: req.user._id,      
-      receiverId: receiverId,      
-      callType,
-      status: 'pending'       
-    });
+    const messages = await Message.find({
+      $or: [
+        { sender: myId, receiver: userId },
+        { sender: userId, receiver: myId }
+      ]
+    }).sort({ createdAt: 1 });
 
-    await newCall.save();
-    
-    await newCall.populate('caller', 'name email');
-    await newCall.populate('receiver', 'name email');
+    const roomKey = generateRoomKey(myId.toString(), userId);
 
-    res.status(201).json({ success: true, call: newCall });
-  } catch (error) {
-    console.error("Error initiating call:", error);
-    res.status(500).json({ success: false, message: 'Server Error' });
-  }
-});
+    const decryptedMessages = messages.map(msg => {
+      if (msg.isEncrypted && msg.encrypted) {
+        const decrypted = decryptMessage({
+          encrypted: msg.encrypted,
+          iv: msg.iv,
+          authTag: msg.authTag
+        }, roomKey);
 
-router.put('/:id/status', protect, async (req, res) => {
-  try {
-    const { status } = req.body;
-    const callId = req.params.id;
-
-    let updateData = { status };
-    const now = new Date();
-
-    if (status === 'accepted') {
-      updateData.startTime = now;
-    } 
-    else if (status === 'ended') {
-      updateData.endTime = now;
-      
-      const existingCall = await Call.findById(callId);
-      if (existingCall && existingCall.startTime) {
-        const durationInSeconds = Math.round((now - new Date(existingCall.startTime)) / 1000);
-        updateData.duration = durationInSeconds;
+        return {
+          _id: msg._id,
+          sender: msg.sender,
+          receiver: msg.receiver,
+          message: decrypted || msg.message,
+          createdAt: msg.createdAt
+        };
       }
-    }
+      return {
+        _id: msg._id,
+        sender: msg.sender,
+        receiver: msg.receiver,
+        message: msg.message,
+        createdAt: msg.createdAt
+      };
+    });
 
-    const updatedCall = await Call.findByIdAndUpdate(
-      callId, 
-      updateData,
-      { new: true }
-    );
-
-    if (!updatedCall) {
-        return res.status(404).json({ success: false, message: 'Call not found' });
-    }
-
-    res.json({ success: true, call: updatedCall });
+    res.json(decryptedMessages);
   } catch (error) {
-    console.error("Error updating call:", error);
-    res.status(500).json({ success: false, message: 'Server Error' });
+    console.error('Chat history error:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 
-router.get('/history', protect, async (req, res) => {
-    try {
-        const userId = req.user._id;
-
-        const calls = await Call.find({
-            $or: [{ caller: userId }, { receiver: userId }, { callerId: userId }, { receiverId: userId }]
-        })
-        .populate('caller', 'name email')   
-        .populate('receiver', 'name email') 
-        .sort({ createdAt: -1 });            
-
-        res.json(calls);
-    } catch (error) {
-        console.error("Error fetching history:", error);
-        res.status(500).json({ message: "Error fetching call history" });
-    }
-});
-
-router.post('/start', async (req, res) => {
+router.get('/contacts', protect, async (req, res) => {
   try {
-    console.log("Incoming Call Request:", req.body);
+    const myId = req.user._id || req.user.id;
 
-    const callerId = req.body.caller || req.body.from || req.body.sender || req.body.callerId;
-    const receiverId = req.body.receiver || req.body.to || req.body.userToCall || req.body.receiverId;
-
-    if (!callerId || !receiverId) {
-      console.error("Missing Data:", { callerId, receiverId });
-      return res.status(400).json({ 
-        message: "Missing caller or receiver ID", 
-        received: req.body 
-      });
-    }
-
-    const newCall = new Call({
-      caller: callerId,
-      receiver: receiverId,
-      callerId: callerId,
-      receiverId: receiverId,
-      status: 'pending',
-      startTime: new Date()
+    const messages = await Message.find({
+      $or: [{ sender: myId }, { receiver: myId }]
     });
 
-    await newCall.save();
-    console.log("Call saved successfully:", newCall._id);
+    const contactIds = new Set();
+    messages.forEach(msg => {
+      if (msg.sender.toString() !== myId.toString()) contactIds.add(msg.sender.toString());
+      if (msg.receiver.toString() !== myId.toString()) contactIds.add(msg.receiver.toString());
+    });
 
-    res.status(201).json(newCall);
-
+    const contacts = await User.find({ _id: { $in: Array.from(contactIds) } }).select('name email role');
+    
+    res.json(contacts);
   } catch (error) {
-    console.error("Error in start route:", error);
-    res.status(500).json({ message: "Failed to initiate call", error: error.message });
+    console.error('Contacts error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.get('/users', protect, async (req, res) => {
+  try {
+    const myId = req.user._id || req.user.id;
+    const users = await User.find({ _id: { $ne: myId } }).select('name email role');
+    res.json(users);
+  } catch (error) {
+    console.error('Users error:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 

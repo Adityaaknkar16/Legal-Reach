@@ -9,8 +9,8 @@ const router = express.Router();
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
-    user: 'your email',
-    pass: 'googal app pass (without any spaces)'
+    user: 'legalreach.official@gmail.com',
+    pass: 'veboewheavzjuacd'
   }
 });
 
@@ -95,26 +95,67 @@ router.post('/login', async (req, res) => {
     const { email, password } = req.body;
     const user = await User.findOne({ email });
     
-    if (!user) return res.status(400).json({ message: "Invalid credentials" });
+    if (!user) {
+      return res.status(400).json({ message: "Invalid credentials" });
+    }
+
+    if (user.role === 'lawyer' && !user.isVerified) {
+      return res.status(403).json({ 
+        message: "Your account is pending admin approval. Please check your email for updates." 
+      });
+    }
 
     const isMatch = await bcryptjs.compare(password, user.password);
-    if (!isMatch) return res.status(400).json({ message: "Invalid credentials" });
+    if (!isMatch) {
+      return res.status(400).json({ message: "Invalid credentials" });
+    }
 
-    if (!user.isVerified) return res.status(401).json({ message: "Please verify email first" });
+    const token = jwt.sign(
+      { id: user._id, role: user.role }, 
+      process.env.JWT_SECRET, 
+      { expiresIn: "1h" }
+    );
 
-    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: "1h" });
+    console.log('Login successful:', user.email, '| Role:', user.role, '| Verified:', user.isVerified);
 
-    res.json({ token, user: { _id: user._id, name: user.name, email: user.email, role: user.role } });
+    res.json({ 
+      token, 
+      user: { 
+        _id: user._id, 
+        name: user.name, 
+        email: user.email, 
+        role: user.role,
+        isVerified: user.isVerified
+      } 
+    });
   } catch (error) {
+    console.error('Login error:', error);
     res.status(500).json({ message: "Server Error" });
   }
 });
 
 router.get('/lawyers', async (req, res) => {
   try {
-    const lawyers = await User.find({ role: 'lawyer' }).select('-password');
+    const { name, city, specialization } = req.query;
+    
+    let query = { role: 'lawyer', isVerified: true };
+    
+    if (name) {
+      query.name = { $regex: name, $options: 'i' };
+    }
+    
+    if (city) {
+      query.city = { $regex: city, $options: 'i' };
+    }
+    
+    if (specialization) {
+      query.specialization = specialization;
+    }
+    
+    const lawyers = await User.find(query).select('-password');
     res.json(lawyers);
   } catch (error) {
+    console.error('Error fetching lawyers:', error);
     res.status(500).json({ message: "Server Error" });
   }
 });

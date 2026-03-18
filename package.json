@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "@zegocloud/zego-uikit-prebuilt": "^2.17.2"
+  }
+}

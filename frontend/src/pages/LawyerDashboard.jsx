@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import io from 'socket.io-client';
 import './LawyerDashboard.css';
+
+const socket = io.connect("http://localhost:3000");
 
 const LawyerDashboard = () => {
   const [requests, setRequests] = useState([]);
@@ -11,6 +14,23 @@ const LawyerDashboard = () => {
   const [success, setSuccess] = useState(null);
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem('user'));
+
+  useEffect(() => {
+    if (user) {
+      socket.emit("join_room", user._id);
+
+      socket.on("incoming_call_notification", (data) => {
+        const accept = window.confirm(`${data.callerName} is calling you (${data.callType}). Accept?`);
+        if (accept) {
+          navigate(`/voice-call?roomId=${data.roomId}&userName=${user.name}&callType=${data.callType}`);
+        }
+      });
+
+      return () => {
+        socket.off("incoming_call_notification");
+      };
+    }
+  }, [user, navigate]);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -50,10 +70,8 @@ const LawyerDashboard = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
       
-      // Remove the accepted request from the list
       setRequests(requests.filter(req => req._id !== id));
       
-      // Fetch updated connections to add the client to the connected clients list immediately
       const clientResponse = await axios.get('http://localhost:3000/api/connect/my-connections', {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -74,7 +92,6 @@ const LawyerDashboard = () => {
       await axios.put(`http://localhost:3000/api/connect/reject/${id}`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      // Remove the rejected request from the list
       setRequests(requests.filter(req => req._id !== id));
       setSuccess("Request rejected.");
       setTimeout(() => setSuccess(null), 3000);

@@ -4,6 +4,7 @@ import User from '../models/user.js';
 import { protect } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
+// past chats
 
 router.get('/history/:userId', protect, async (req, res) => {
   try {
@@ -23,6 +24,7 @@ router.get('/history/:userId', protect, async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+// user id
 
 router.get('/contacts', protect, async (req, res) => {
   try {
@@ -46,6 +48,8 @@ router.get('/contacts', protect, async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+//fetch user
 
 router.get('/users', protect, async (req, res) => {
   try {
