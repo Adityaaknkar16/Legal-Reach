@@ -9,15 +9,15 @@ const router = express.Router();
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
-    user: 'legalreach.official@gmail.com',
-    pass: 'veboewheavzjuacd'
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
   }
 });
 
 const sendOTPEmail = async (email, otp) => {
   try {
     await transporter.sendMail({
-      from: 'LegalReach <legalreach.official@gmail.com>',
+      from: `LegalReach <${process.env.EMAIL_USER}>`,
       to: email,
       subject: 'Verify Your Account - LegalReach',
       text: `Your OTP for verification is: ${otp}`

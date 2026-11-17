@@ -1,4 +1,5 @@
 .env
-uploads/
+.env.*
+*.env
 node_modules/
-pac
+uploads/

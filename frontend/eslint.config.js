@@ -1,29 +1,34 @@
-import js from '@eslint/js'
-import globals from 'globals'
-import reactHooks from 'eslint-plugin-react-hooks'
-import reactRefresh from 'eslint-plugin-react-refresh'
-import { defineConfig, globalIgnores } from 'eslint/config'
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import { nodePolyfills } from 'vite-plugin-node-polyfills';
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{js,jsx}'],
-    extends: [
-      js.configs.recommended,
-      reactHooks.configs.flat.recommended,
-      reactRefresh.configs.vite,
-    ],
-    languageOptions: {
-      ecmaVersion: 2020,
-      globals: globals.browser,
-      parserOptions: {
-        ecmaVersion: 'latest',
-        ecmaFeatures: { jsx: true },
-        sourceType: 'module',
+export default defineConfig({
+  plugins: [
+    // 1. Initialize polyfills FIRST
+    nodePolyfills({
+      globals: {
+        Buffer: true, 
+        global: true,
+        process: true,
       },
-    },
-    rules: {
-      'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+    }),
+    react(),
+  ],
+  resolve: {
+    alias: {
+      // 2. Explicitly map the paths that are failing during the Rollup build
+      'vite-plugin-node-polyfills/shims/process': 'vite-plugin-node-polyfills/shims/process',
+      'vite-plugin-node-polyfills/shims/buffer': 'vite-plugin-node-polyfills/shims/buffer',
     },
   },
-])
+  build: {
+    rollupOptions: {
+      // 3. Ensure these are not treated as external modules
+      external: [],
+    },
+    commonjsOptions: {
+      // 4. Required for ZegoCloud's internal module structure
+      transformMixedEsModules: true,
+    },
+  },
+});

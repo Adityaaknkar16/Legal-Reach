@@ -27,8 +27,8 @@ const VoiceCall = () => {
       }
 
       try {
-        const appId = 615561568;
-        const serverSecret = "b7cfab4369fb1e6aeab8a7c4e733ef7c";
+        const appId = Number(import.meta.env.VITE_ZEGO_APP_ID);
+        const serverSecret = import.meta.env.VITE_ZEGO_SERVER_SECRET;
 
         const kitToken = ZegoUIKitPrebuilt.generateKitTokenForTest(
           appId,

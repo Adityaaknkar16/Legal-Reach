@@ -42,9 +42,33 @@ app.use('/api/connect', requestRoutes);
 app.use('/api/calls', callRoutes); 
 app.use('/api/new-lawyer', newLawyerRoutes);
 
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log("MongoDB Connected"))
-  .catch((err) => console.log(err));
+// MongoDB connection with optimized settings for Atlas
+const mongoDBOptions = {
+  maxPoolSize: 10,
+  minPoolSize: 2,
+  maxIdleTimeMS: 30000,
+  connectTimeoutMS: 10000,
+  socketTimeoutMS: 30000,
+  serverSelectionTimeoutMS: 5000,
+  retryWrites: true,
+  retryReads: true,
+  compressors: ['snappy'],
+};
+
+mongoose.connect(process.env.MONGO_URI, mongoDBOptions)
+  .then(() => console.log("✓ MongoDB Connected"))
+  .catch((err) => {
+    console.error("✗ MongoDB Connection Failed:");
+    console.error("  Error:", err.message);
+    if (err.reason) {
+      console.error("  Reason:", err.reason.type);
+      console.error("  Servers found:", err.reason.servers.size);
+    }
+    console.error("\nTroubleshooting steps:");
+    console.error("1. Check MongoDB Atlas IP Whitelist includes your IP");
+    console.error("2. Verify credentials in MONGO_URI");
+    console.error("3. Ensure the cluster is running and not paused");
+  });
 
 io.use(socketAuthMiddleware);
 

@@ -14,15 +14,15 @@ const router = express.Router();
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
-    user: 'legalreach.official@gmail.com',
-    pass: 'veboewheavzjuacd'
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
   }
 });
 
 const sendEmail = async (to, subject, text) => {
   try {
     await transporter.sendMail({
-      from: 'LegalReach <legalreach.official@gmail.com>',
+      from: `LegalReach <${process.env.EMAIL_USER}>`,
       to,
       subject,
       text
