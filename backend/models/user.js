@@ -11,6 +11,7 @@ const userSchema = new mongoose.Schema({
   phone: String,
   experience: String,
   bio: String,
+  profilePic: { type: String, default: '' },
   barCouncilRegNumber: String,
   stateBarCouncil: String,
   yearOfEnrollment: String,

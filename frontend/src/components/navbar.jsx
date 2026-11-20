@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Scale, User } from 'lucide-react';
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -16,7 +17,8 @@ const Navbar = () => {
 
   return (
     <nav style={styles.nav}>
-      <Link to="/" style={{ textDecoration: 'none' }}>
+      <Link to="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <Scale size={24} color="#3b82f6" />
         <h2 style={styles.logo}>
           <span style={{ color: 'white' }}>Legal</span>
           <span style={{ color: '#3b82f6' }}>Reach</span>
@@ -25,15 +27,33 @@ const Navbar = () => {
       
       <div style={styles.links}>
         <Link to="/" style={styles.link}>Home</Link>
-        <Link to="/service" style={styles.link}>Find Lawyers</Link>
+        <Link to="/find-lawyers" style={styles.link}>Find Lawyers</Link>
         <Link to="/service" style={styles.link}>Services</Link>
+        {token && user && user.role === 'lawyer' && (
+          <Link to="/lawyer-dashboard" style={styles.link}>Lawyer Dashboard</Link>
+        )}
+        {token && user && user.role === 'client' && (
+          <Link to="/user-dashboard" style={styles.link}>My Dashboard</Link>
+        )}
+        {token && user && user.role === 'admin' && (
+          <Link to="/admin-panel" style={styles.link}>Admin Panel</Link>
+        )}
         <Link to="/about" style={styles.link}>About Us</Link>
       </div>
 
       <div style={styles.auth}>
         {token && user ? (
           <>
-            <span style={styles.userName}>Hello, {user.name}</span>
+            <Link to="/edit-profile" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: '#e2e8f0', textDecoration: 'none', marginRight: '14px', fontSize: '14px', fontWeight: '500' }} title="Edit Profile">
+              {user.profilePic ? (
+                <img src={user.profilePic} alt="avatar" style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover', border: '1px solid #3b82f6' }} />
+              ) : (
+                <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#1e293b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <User size={16} color="#94a3b8" />
+                </div>
+              )}
+              <span>{user.name}</span>
+            </Link>
             <button onClick={handleLogout} style={styles.logoutBtn}>Logout</button>
           </>
         ) : (

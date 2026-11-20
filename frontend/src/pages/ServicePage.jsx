@@ -2,6 +2,20 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import io from 'socket.io-client';
+import { 
+  Phone, 
+  Video, 
+  Paperclip, 
+  Image as ImageIcon, 
+  Send, 
+  Check, 
+  X, 
+  Clock, 
+  FileText, 
+  ExternalLink, 
+  AlertCircle, 
+  CheckCircle2 
+} from 'lucide-react';
 import './ServicePage.css';
 
 const socket = io.connect("http://localhost:3000");
@@ -12,8 +26,10 @@ const ServicePage = () => {
   const [selectedChat, setSelectedChat] = useState(null);
   const [chatMessages, setChatMessages] = useState([]);
   const [chatMessage, setChatMessage] = useState("");
+  const [uploading, setUploading] = useState(false);
   const [incomingCall, setIncomingCall] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [statusMessage, setStatusMessage] = useState({ type: '', text: '' });
   const navigate = useNavigate();
   
   const user = JSON.parse(localStorage.getItem('user'));
@@ -103,31 +119,57 @@ const ServicePage = () => {
     setChatMessage("");
   };
 
-  const handleFileUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
+  const uploadAndSend = async (file) => {
+    if (!file || !selectedChat) return;
+    try {
+      setUploading(true);
+      const token = localStorage.getItem('token');
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const res = await axios.post('http://localhost:3000/api/chat/upload', formData, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+
+      const { fileUrl, fileName, fileType } = res.data;
+      const isImg = fileType?.startsWith('image/');
+
       const messageData = {
         sender: user._id,
         receiver: selectedChat._id,
-        message: `📎 ${file.name}`,
+        message: isImg ? '📷 Shared an image' : `📎 Shared document: ${fileName}`,
+        fileUrl,
+        fileName,
+        fileType,
         createdAt: new Date()
       };
+
       socket.emit("send_message", messageData);
       setChatMessages((prev) => [...prev, messageData]);
+    } catch (err) {
+      console.error("Upload error:", err);
+      alert(err.response?.data?.message || "Failed to upload file");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      uploadAndSend(file);
+      e.target.value = '';
     }
   };
 
   const handlePhotoUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
-      const messageData = {
-        sender: user._id,
-        receiver: selectedChat._id,
-        message: `🖼️ ${file.name}`,
-        createdAt: new Date()
-      };
-      socket.emit("send_message", messageData);
-      setChatMessages((prev) => [...prev, messageData]);
+      uploadAndSend(file);
+      e.target.value = '';
     }
   };
 
@@ -139,7 +181,7 @@ const ServicePage = () => {
     const callNotification = {
       sender: user._id,
       receiver: selectedChat._id,
-      message: `📞 Started an audio call`,
+      message: `Started an audio consultation call`,
       createdAt: new Date(),
       isSystemMessage: true
     };
@@ -166,7 +208,7 @@ const ServicePage = () => {
     const callNotification = {
       sender: user._id,
       receiver: selectedChat._id,
-      message: `📹 Started a video call`,
+      message: `Started a video consultation session`,
       createdAt: new Date(),
       isSystemMessage: true
     };
@@ -187,17 +229,23 @@ const ServicePage = () => {
 
   const sendRequest = async (lawyerId) => {
     try {
-        const token = localStorage.getItem('token');
-        
-        if (!token) return alert("Please login first");
+      const token = localStorage.getItem('token');
+      
+      if (!token) {
+        setStatusMessage({ type: 'error', text: 'Please log in to send connection requests.' });
+        setTimeout(() => navigate('/login'), 1500);
+        return;
+      }
 
-        const config = { headers: { Authorization: `Bearer ${token}` } };
-        
-        const response = await axios.post('http://localhost:3000/api/connect/send', { lawyerId }, config);
-        alert("Request Sent!");
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+      
+      await axios.post('http://localhost:3000/api/connect/send', { lawyerId }, config);
+      setStatusMessage({ type: 'success', text: 'Connection request sent successfully! You will be notified once accepted.' });
+      setTimeout(() => setStatusMessage({ type: '', text: '' }), 4000);
     } catch (error) {
-        console.error("Request error full response:", error.response);
-        alert("Request Failed: " + (error.response?.data?.message || error.message));
+      console.error("Request error full response:", error.response);
+      setStatusMessage({ type: 'error', text: "Request failed: " + (error.response?.data?.message || error.message) });
+      setTimeout(() => setStatusMessage({ type: '', text: '' }), 4000);
     }
   };
 
@@ -209,6 +257,25 @@ const ServicePage = () => {
     <div className="service-wrapper">
       <div className="service-container">
         <h2>Find a Lawyer</h2>
+
+        {statusMessage.text && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            padding: '12px 18px',
+            borderRadius: '8px',
+            marginBottom: '20px',
+            fontSize: '14px',
+            fontWeight: '500',
+            backgroundColor: statusMessage.type === 'success' ? '#f0fdf4' : '#fef2f2',
+            border: statusMessage.type === 'success' ? '1px solid #bbf7d0' : '1px solid #fecaca',
+            color: statusMessage.type === 'success' ? '#15803d' : '#b91c1c'
+          }}>
+            {statusMessage.type === 'success' ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
+            <span>{statusMessage.text}</span>
+          </div>
+        )}
 
         {activeChats.length > 0 && (
           <div className="section">
@@ -253,8 +320,12 @@ const ServicePage = () => {
           <div className="chat-header-sidebar">
             <h3>{selectedChat.name}</h3>
             <div className="chat-actions-sidebar">
-              <button className="action-btn-sidebar" onClick={startAudioCall} title="Audio Call">📞</button>
-              <button className="action-btn-sidebar" onClick={startVideoCall} title="Video Call">📹</button>
+              <button className="action-btn-sidebar" onClick={startAudioCall} title="Audio Call" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Phone size={16} />
+              </button>
+              <button className="action-btn-sidebar" onClick={startVideoCall} title="Video Call" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Video size={16} />
+              </button>
             </div>
             <button className="close-btn" onClick={() => setSelectedChat(null)}>×</button>
           </div>
@@ -268,25 +339,69 @@ const ServicePage = () => {
               ) : (
                 <div key={index} className={`message-row ${msg.sender === user._id ? "my-message" : "other-message"}`}>
                   <div className="bubble">
+                    {msg.fileUrl && (
+                      <div style={{ marginBottom: '8px' }}>
+                        {msg.fileType?.startsWith('image/') ? (
+                          <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer">
+                            <img 
+                              src={msg.fileUrl} 
+                              alt={msg.fileName || "Attachment"} 
+                              style={{ maxWidth: '200px', maxHeight: '180px', borderRadius: '6px', display: 'block', objectFit: 'cover' }} 
+                            />
+                          </a>
+                        ) : (
+                          <a 
+                            href={msg.fileUrl} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            style={{ 
+                              display: 'inline-flex', 
+                              alignItems: 'center', 
+                              gap: '6px', 
+                              background: msg.sender === user._id ? 'rgba(255,255,255,0.2)' : '#f1f5f9',
+                              color: msg.sender === user._id ? '#fff' : '#2563eb',
+                              padding: '6px 10px',
+                              borderRadius: '6px',
+                              textDecoration: 'none',
+                              fontWeight: '600',
+                              fontSize: '12px'
+                            }}
+                          >
+                            <FileText size={14} /> {msg.fileName || 'View Document'} <ExternalLink size={12} />
+                          </a>
+                        )}
+                      </div>
+                    )}
                     <p>{msg.message}</p>
                     <span className="time">{new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                   </div>
                 </div>
               )
             ))}
+            {uploading && (
+              <div className="message-row my-message">
+                <div className="bubble" style={{ opacity: 0.8, fontStyle: 'italic', fontSize: '13px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  <Clock size={13} /> Uploading document...
+                </div>
+              </div>
+            )}
             <div ref={bottomRef} />
           </div>
 
           <div className="chat-input-sidebar">
             <div className="input-actions-sidebar">
-              <button className="attach-btn-sidebar" onClick={() => fileInputRef.current.click()} title="Attach File">📎</button>
+              <button className="attach-btn-sidebar" onClick={() => fileInputRef.current.click()} title="Attach File" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Paperclip size={16} />
+              </button>
               <input 
                 ref={fileInputRef}
                 type="file" 
                 style={{ display: 'none' }}
                 onChange={handleFileUpload}
               />
-              <button className="attach-btn-sidebar" onClick={() => photoInputRef.current.click()} title="Attach Photo">🖼️</button>
+              <button className="attach-btn-sidebar" onClick={() => photoInputRef.current.click()} title="Attach Photo" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                <ImageIcon size={16} />
+              </button>
               <input 
                 ref={photoInputRef}
                 type="file" 
@@ -302,8 +417,8 @@ const ServicePage = () => {
               onChange={(e) => setChatMessage(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
             />
-            <button onClick={sendMessage} className="send-btn-sidebar">
-              ➤
+            <button onClick={sendMessage} className="send-btn-sidebar" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Send size={15} />
             </button>
           </div>
         </div>
@@ -312,14 +427,24 @@ const ServicePage = () => {
       {incomingCall && (
         <div className="incoming-call-notification">
           <div className="incoming-call-content">
-            <p className="incoming-call-text">{incomingCall.fromName} is calling... ({incomingCall.type === 'video' ? '📹' : '📞'})</p>
+            <p className="incoming-call-text" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {incomingCall.type === 'video' ? <Video size={18} /> : <Phone size={18} />}
+              {incomingCall.fromName} is calling...
+            </p>
             <div className="incoming-call-actions">
               <button className="accept-btn-inline" onClick={() => {
                 navigate(`/voice-call?roomId=${incomingCall.roomId}&userName=${user.name}&callType=${incomingCall.type}`);
                 setIncomingCall(null);
-              }}>✓ Accept</button>
-              <button className="reject-btn-inline" onClick={() => setIncomingCall(null)}>✗ Reject</button>
+              }} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                <Check size={14} /> Accept
+              </button>
+              <button className="reject-btn-inline" onClick={() => setIncomingCall(null)} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                <X size={14} /> Reject
+              </button>
             </div>
+          </div>
+        </div>
+      )}
           </div>
         </div>
       )}

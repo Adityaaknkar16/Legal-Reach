@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express from 'express';
 import NewLawyer from '../models/NewLawyer.js';
 import User from '../models/user.js';
@@ -11,16 +12,19 @@ import fs from 'fs';
 const router = express.Router();
 
 // Email configuration
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
-  }
-});
+const getTransporter = () => {
+  return nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS
+    }
+  });
+};
 
 const sendEmail = async (to, subject, text) => {
   try {
+    const transporter = getTransporter();
     await transporter.sendMail({
       from: `LegalReach <${process.env.EMAIL_USER}>`,
       to,

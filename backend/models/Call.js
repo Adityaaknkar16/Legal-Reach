@@ -11,15 +11,31 @@ const callSchema = new mongoose.Schema({
     ref: 'User', 
     required: true 
   },
+  roomId: {
+    type: String,
+    required: true
+  },
+  callType: {
+    type: String,
+    enum: ['audio', 'video'],
+    default: 'video'
+  },
   status: { 
     type: String, 
-    enum: ['pending', 'accepted', 'rejected', 'ended'], 
-    default: 'pending' 
+    enum: ['ongoing', 'completed', 'missed', 'rejected'], 
+    default: 'ongoing' 
   },
-  startTime: { type: Date },
-  endTime: { type: Date }
+  duration: {
+    type: Number, // in seconds
+    default: 0
+  },
+  startTime: { 
+    type: Date, 
+    default: Date.now 
+  },
+  endTime: { 
+    type: Date 
+  }
 }, { timestamps: true });
-
-
 
 export default mongoose.model('Call', callSchema);

@@ -15,6 +15,9 @@ import LawyerRegister from './pages/LawyerRegister';
 import AdminPanel from './pages/AdminPanel';
 import FindLawyers from './pages/FindLawyers';
 import LawyerDetails from './pages/LawyerDetails';
+import UserDashboard from './pages/UserDashboard';
+import ForgotPassword from './pages/ForgotPassword';
+import EditProfile from './pages/EditProfile';
 
 const App = () => {
   return (
@@ -23,6 +26,7 @@ const App = () => {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/register" element={<Register />} />
         <Route path="/service" element={<ServicePage />} />
         <Route path="/lawyer-dashboard" element={<LawyerDashboard />} />
@@ -30,6 +34,9 @@ const App = () => {
         <Route path="/chat" element={<ChatPage />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/voice-Call" element={<VoiceCall />} />
+        <Route path="/voice-call" element={<VoiceCall />} />
+        <Route path="/user-dashboard" element={<UserDashboard />} />
+        <Route path="/edit-profile" element={<EditProfile />} />
         <Route path="/verify-otp" element={<VerifyOtp />} />
         <Route path="/lawyer-register" element={<LawyerRegister />} />
         <Route path="/admin-panel" element={<AdminPanel />} />

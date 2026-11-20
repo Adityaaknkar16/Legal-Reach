@@ -1,6 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { 
+  ExternalLink, 
+  FileText, 
+  Image as ImageIcon, 
+  AlertCircle, 
+  CheckCircle2, 
+  Trash2, 
+  Eye, 
+  Check, 
+  X, 
+  ShieldCheck 
+} from 'lucide-react';
 import './AdminPanel.css';
 
 const AdminPanel = () => {
@@ -8,6 +20,7 @@ const AdminPanel = () => {
   const [allLawyers, setAllLawyers] = useState([]);
   const [activeTab, setActiveTab] = useState('pending');
   const [selectedLawyer, setSelectedLawyer] = useState(null);
+  const [statusMessage, setStatusMessage] = useState({ type: '', text: '' });
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -48,12 +61,14 @@ const AdminPanel = () => {
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      alert('Lawyer approved and added to system!');
+      setStatusMessage({ type: 'success', text: 'Lawyer approved and added to system!' });
+      setTimeout(() => setStatusMessage({ type: '', text: '' }), 4000);
       fetchLawyers();
       setSelectedLawyer(null);
     } catch (error) {
       console.error('Error approving lawyer:', error);
-      alert('Failed to approve lawyer');
+      setStatusMessage({ type: 'error', text: 'Failed to approve lawyer application.' });
+      setTimeout(() => setStatusMessage({ type: '', text: '' }), 4000);
     }
   };
 
@@ -69,12 +84,14 @@ const AdminPanel = () => {
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      alert('Lawyer application rejected');
+      setStatusMessage({ type: 'success', text: 'Lawyer application rejected.' });
+      setTimeout(() => setStatusMessage({ type: '', text: '' }), 4000);
       fetchLawyers();
       setSelectedLawyer(null);
     } catch (error) {
       console.error('Error rejecting lawyer:', error);
-      alert('Failed to reject lawyer');
+      setStatusMessage({ type: 'error', text: 'Failed to reject lawyer application.' });
+      setTimeout(() => setStatusMessage({ type: '', text: '' }), 4000);
     }
   };
 
@@ -89,12 +106,14 @@ const AdminPanel = () => {
         `http://localhost:3000/api/new-lawyer/${lawyerId}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      alert('Application deleted');
+      setStatusMessage({ type: 'success', text: 'Application deleted successfully.' });
+      setTimeout(() => setStatusMessage({ type: '', text: '' }), 4000);
       fetchLawyers();
       setSelectedLawyer(null);
     } catch (error) {
       console.error('Error deleting lawyer:', error);
-      alert('Failed to delete application');
+      setStatusMessage({ type: 'error', text: 'Failed to delete application.' });
+      setTimeout(() => setStatusMessage({ type: '', text: '' }), 4000);
     }
   };
 
@@ -129,6 +148,25 @@ const AdminPanel = () => {
           navigate('/login');
         }}>Logout</button>
       </div>
+
+      {statusMessage.text && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          padding: '12px 18px',
+          borderRadius: '8px',
+          marginBottom: '20px',
+          fontSize: '14px',
+          fontWeight: '500',
+          backgroundColor: statusMessage.type === 'success' ? '#f0fdf4' : '#fef2f2',
+          border: statusMessage.type === 'success' ? '1px solid #bbf7d0' : '1px solid #fecaca',
+          color: statusMessage.type === 'success' ? '#15803d' : '#b91c1c'
+        }}>
+          {statusMessage.type === 'success' ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
+          <span>{statusMessage.text}</span>
+        </div>
+      )}
 
       <div className="admin-tabs">
         <button 
@@ -275,10 +313,19 @@ const AdminPanel = () => {
                                 borderRadius: '5px',
                                 cursor: 'pointer',
                                 fontSize: '14px',
-                                fontWeight: '600'
+                                fontWeight: '600',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '8px'
                               }}
                             >
-                              {isCloudinaryURL ? '🔗 View Document' : (isPDF ? '📄 View PDF' : '🖼️ View Image')}
+                              {isCloudinaryURL ? (
+                                <><ExternalLink size={16} /> View Document</>
+                              ) : isPDF ? (
+                                <><FileText size={16} /> View PDF</>
+                              ) : (
+                                <><ImageIcon size={16} /> View Image</>
+                              )}
                             </button>
                           </div>
 

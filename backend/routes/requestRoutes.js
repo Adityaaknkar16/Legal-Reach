@@ -2,20 +2,51 @@ import express from 'express';
 import Request from '../models/Request.js';
 import User from '../models/user.js';
 import { protect } from '../middleware/authMiddleware.js';
+import { notifyLawyerConnectionRequest, notifyClientConnectionAccepted } from '../utils/emailService.js';
 
 const router = express.Router();
 
 router.post('/send', protect, async (req, res) => {
-  const { lawyerId } = req.body;
+  const targetLawyerId = req.body.lawyerId || req.body.receiverId;
   const clientId = req.user._id || req.user.id;
 
+  if (!targetLawyerId) {
+    return res.status(400).json({ message: "Lawyer ID is required." });
+  }
+
+  if (targetLawyerId.toString() === clientId.toString()) {
+    return res.status(400).json({ message: "You cannot send a connection request to yourself." });
+  }
+
   try {
-    const existingRequest = await Request.findOne({ sender: clientId, receiver: lawyerId });
+    const existingRequest = await Request.findOne({
+      $or: [
+        { sender: clientId, receiver: targetLawyerId },
+        { sender: targetLawyerId, receiver: clientId }
+      ]
+    });
+
     if (existingRequest) {
-      return res.status(400).json({ message: "Request already sent." });
+      if (existingRequest.status === 'accepted') {
+        return res.status(400).json({ message: "You are already connected." });
+      }
+      return res.status(400).json({ message: "Connection request already sent." });
     }
 
-    const newRequest = await Request.create({ sender: clientId, receiver: lawyerId });
+    const newRequest = await Request.create({ sender: clientId, receiver: targetLawyerId });
+
+    // Send email alert to lawyer
+    User.findById(targetLawyerId).then(lawyer => {
+      if (lawyer && lawyer.email) {
+        notifyLawyerConnectionRequest({
+          lawyerEmail: lawyer.email,
+          lawyerName: lawyer.name,
+          clientName: req.user.name || 'A client',
+          clientEmail: req.user.email
+        }).catch(err => console.error("Email send error:", err));
+      }
+    }).catch(err => console.error("Find lawyer error:", err));
+
     res.status(201).json({ message: "Request sent successfully!", request: newRequest });
   } catch (error) {
     console.error("Send request error:", error);
@@ -50,6 +81,18 @@ router.put('/accept/:id', protect, async (req, res) => {
 
     request.status = 'accepted';
     await request.save();
+
+    // Send email alert to client that lawyer accepted
+    User.findById(request.sender).then(client => {
+      if (client && client.email) {
+        notifyClientConnectionAccepted({
+          clientEmail: client.email,
+          clientName: client.name,
+          lawyerName: req.user.name || 'Your lawyer',
+          lawyerId: myId
+        }).catch(err => console.error("Email send error:", err));
+      }
+    }).catch(err => console.error("Find client error:", err));
 
     res.json({ message: "Request Accepted. You can now chat!" });
   } catch (error) {

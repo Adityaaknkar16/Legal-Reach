@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import { ZegoUIKitPrebuilt } from '@zegocloud/zego-uikit-prebuilt';
 
 const VoiceCall = () => {
@@ -10,6 +11,7 @@ const VoiceCall = () => {
   
   const roomId = searchParams.get('roomId');
   const userName = searchParams.get('userName');
+  const receiverId = searchParams.get('receiverId');
   const callType = searchParams.get('callType') || 'video';
 
   useEffect(() => {
@@ -24,6 +26,20 @@ const VoiceCall = () => {
       if (!user) {
         navigate('/login');
         return;
+      }
+
+      // Log call start to database
+      if (receiverId && roomId) {
+        const token = localStorage.getItem('token');
+        if (token) {
+          axios.post('http://localhost:3000/api/calls/log-start', {
+            receiverId,
+            roomId,
+            callType
+          }, {
+            headers: { Authorization: `Bearer ${token}` }
+          }).catch(err => console.error("Call start log error:", err));
+        }
       }
 
       try {
@@ -53,6 +69,12 @@ const VoiceCall = () => {
           showScreenSharingButton: false,
           showPreJoinView: false,
           onLeaveRoom: () => {
+            const token = localStorage.getItem('token');
+            if (token && roomId) {
+              axios.post('http://localhost:3000/api/calls/log-end', { roomId, status: 'completed' }, {
+                headers: { Authorization: `Bearer ${token}` }
+              }).catch(err => console.error("Call log end error:", err));
+            }
             navigate(-1);
           }
         });

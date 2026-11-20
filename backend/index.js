@@ -1,7 +1,7 @@
+import 'dotenv/config';
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import authRoutes from './routes/authRoutes.js';
@@ -11,10 +11,10 @@ import callRoutes from './routes/callRoutes.js';
 import Message from './models/Message.js';
 import Call from './models/Call.js';
 import newLawyerRoutes from './routes/newLawyerRoutes.js';
+import appointmentRoutes from './routes/appointmentRoutes.js';
+import documentRoutes from './routes/documentRoutes.js';
 import { socketAuthMiddleware } from './middleware/socketAuthMiddleware.js';
 import { encryptMessage, generateRoomKey } from './utils/cryptoUtils.js';
-
-dotenv.config();
 
 const app = express();
 const httpServer = createServer(app);
@@ -41,6 +41,8 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/connect', requestRoutes);
 app.use('/api/calls', callRoutes); 
 app.use('/api/new-lawyer', newLawyerRoutes);
+app.use('/api/appointments', appointmentRoutes);
+app.use('/api/documents', documentRoutes);
 
 // MongoDB connection with optimized settings for Atlas
 const mongoDBOptions = {
@@ -94,6 +96,9 @@ io.on("connection", (socket) => {
         sender: data.sender,
         receiver: data.receiver,
         message: data.message,
+        fileUrl: data.fileUrl || null,
+        fileType: data.fileType || null,
+        fileName: data.fileName || null,
         encrypted: encryptedData.encrypted,
         iv: encryptedData.iv,
         authTag: encryptedData.authTag,
@@ -117,7 +122,24 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("notify_call", (data) => {
+  socket.on("notify_call", async (data) => {
+    try {
+      if (data.callerId && data.receiverId && data.roomId) {
+        const existing = await Call.findOne({ roomId: data.roomId });
+        if (!existing) {
+          await Call.create({
+            caller: data.callerId,
+            receiver: data.receiverId,
+            roomId: data.roomId,
+            callType: data.callType || 'video',
+            status: 'ongoing',
+            startTime: new Date()
+          });
+        }
+      }
+    } catch (err) {
+      console.error("Auto call log error:", err);
+    }
     io.to(data.receiverId).emit("incoming_call_notification", data);
   });
 

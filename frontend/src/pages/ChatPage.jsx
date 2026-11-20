@@ -1,6 +1,20 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import io from 'socket.io-client';
+import { 
+  Phone, 
+  Video, 
+  FolderOpen, 
+  Paperclip, 
+  Image as ImageIcon, 
+  Send, 
+  FileText, 
+  ExternalLink, 
+  Clock, 
+  ArrowLeft, 
+  AlertCircle 
+} from 'lucide-react';
 import { generateRoomKey, encryptMessage, decryptMessage } from '../utils/cryptoUtils';
 import './ChatPage.css';
 
@@ -107,31 +121,58 @@ const ChatPage = () => {
     setMessage("");
   };
 
-  const handleFileUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
+  const [uploading, setUploading] = useState(false);
+
+  const uploadAndSend = async (file) => {
+    if (!file) return;
+    try {
+      setUploading(true);
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const res = await axios.post('http://localhost:3000/api/chat/upload', formData, {
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+
+      const { fileUrl, fileName, fileType } = res.data;
+      const isImg = fileType?.startsWith('image/');
+
       const messageData = {
         sender: user._id,
         receiver: receiverId,
-        message: `📎 ${file.name}`,
+        message: isImg ? 'Shared an image' : `Shared document: ${fileName}`,
+        fileUrl,
+        fileName,
+        fileType,
         createdAt: new Date()
       };
+
       socketRef.current.emit("send_message", messageData);
       setChatHistory((prev) => [...prev, messageData]);
+    } catch (err) {
+      console.error("Upload error:", err);
+      alert(err.response?.data?.message || "Failed to upload file");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      uploadAndSend(file);
+      e.target.value = '';
     }
   };
 
   const handlePhotoUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
-      const messageData = {
-        sender: user._id,
-        receiver: receiverId,
-        message: `🖼️ ${file.name}`,
-        createdAt: new Date()
-      };
-      socketRef.current.emit("send_message", messageData);
-      setChatHistory((prev) => [...prev, messageData]);
+      uploadAndSend(file);
+      e.target.value = '';
     }
   };
 
@@ -147,7 +188,7 @@ const ChatPage = () => {
     });
 
     setTimeout(() => {
-      navigate(`/voice-call?roomId=${roomId}&userName=${user.name}&callType=audio`);
+      navigate(`/voice-call?roomId=${roomId}&receiverId=${receiverId}&userName=${user.name}&callType=audio`);
     }, 1000);
   };
 
@@ -163,22 +204,45 @@ const ChatPage = () => {
     });
 
     setTimeout(() => {
-      navigate(`/voice-call?roomId=${roomId}&userName=${user.name}&callType=video`);
+      navigate(`/voice-call?roomId=${roomId}&receiverId=${receiverId}&userName=${user.name}&callType=video`);
     }, 1000);
   };
 
   return (
     <div className="chat-layout">
       <div className="chat-header">
-        <button className="back-button" onClick={() => navigate(-1)}>&#8592;</button>
+        <button className="back-button" onClick={() => navigate(-1)} title="Back" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <ArrowLeft size={18} />
+        </button>
         <div className="user-info">
             <div className="avatar">{receiverName?.charAt(0).toUpperCase()}</div>
             <h3>{receiverName}</h3>
-            {isConnected && <span className="status-indicator">🟢</span>}
+            {isConnected && (
+              <span style={{ 
+                width: '9px', 
+                height: '9px', 
+                backgroundColor: '#16a34a', 
+                borderRadius: '50%', 
+                display: 'inline-block',
+                boxShadow: '0 0 0 2px rgba(22, 163, 74, 0.3)'
+              }} title="Online"></span>
+            )}
         </div>
         <div className="chat-actions">
-          <button className="action-btn" onClick={startAudioCall} title="Start Audio Call">📞</button>
-          <button className="action-btn" onClick={startVideoCall} title="Start Video Call">📹</button>
+          <button 
+            className="action-btn" 
+            onClick={() => navigate(user.role === 'lawyer' ? '/lawyer-dashboard' : '/user-dashboard')} 
+            title="Open Case Documents Vault"
+            style={{ fontSize: '13px', padding: '6px 12px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+          >
+            <FolderOpen size={15} /> Vault
+          </button>
+          <button className="action-btn" onClick={startAudioCall} title="Start Audio Call" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Phone size={16} />
+          </button>
+          <button className="action-btn" onClick={startVideoCall} title="Start Video Call" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Video size={16} />
+          </button>
         </div>
       </div>
 
@@ -186,24 +250,68 @@ const ChatPage = () => {
         {chatHistory.map((msg, index) => (
           <div key={index} className={`message-row ${msg.sender === user._id ? "my-message" : "other-message"}`}>
             <div className="bubble">
+              {msg.fileUrl && (
+                <div style={{ marginBottom: '8px' }}>
+                  {msg.fileType?.startsWith('image/') ? (
+                    <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer">
+                      <img 
+                        src={msg.fileUrl} 
+                        alt={msg.fileName || "Image attachment"} 
+                        style={{ maxWidth: '240px', maxHeight: '200px', borderRadius: '8px', display: 'block', objectFit: 'cover' }} 
+                      />
+                    </a>
+                  ) : (
+                    <a 
+                      href={msg.fileUrl} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      style={{ 
+                        display: 'inline-flex', 
+                        alignItems: 'center', 
+                        gap: '6px', 
+                        background: msg.sender === user._id ? 'rgba(255,255,255,0.2)' : '#f1f5f9',
+                        color: msg.sender === user._id ? '#fff' : '#2563eb',
+                        padding: '8px 12px',
+                        borderRadius: '6px',
+                        textDecoration: 'none',
+                        fontWeight: '600',
+                        fontSize: '13px'
+                      }}
+                    >
+                      <FileText size={15} /> {msg.fileName || 'View Document'} <ExternalLink size={12} />
+                    </a>
+                  )}
+                </div>
+              )}
               <p>{msg.message}</p>
               <span className="time">{new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
             </div>
           </div>
         ))}
+        {uploading && (
+          <div className="message-row my-message">
+            <div className="bubble" style={{ opacity: 0.85, fontStyle: 'italic', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+              <Clock size={14} /> Uploading attachment to secure cloud...
+            </div>
+          </div>
+        )}
         <div ref={bottomRef} />
       </div>
 
       <div className="chat-input-container">
         <div className="input-actions">
-          <button className="attach-btn" onClick={() => fileInputRef.current.click()} title="Attach File">📎</button>
+          <button className="attach-btn" onClick={() => fileInputRef.current.click()} title="Attach File" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Paperclip size={18} />
+          </button>
           <input 
             ref={fileInputRef}
             type="file" 
             style={{ display: 'none' }}
             onChange={handleFileUpload}
           />
-          <button className="attach-btn" onClick={() => photoInputRef.current.click()} title="Attach Photo">🖼️</button>
+          <button className="attach-btn" onClick={() => photoInputRef.current.click()} title="Attach Photo" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+            <ImageIcon size={18} />
+          </button>
           <input 
             ref={photoInputRef}
             type="file" 
@@ -220,8 +328,8 @@ const ChatPage = () => {
           onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
           disabled={!isConnected}
         />
-        <button onClick={sendMessage} className="send-btn" disabled={!isConnected}>
-          ➤
+        <button onClick={sendMessage} className="send-btn" disabled={!isConnected} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Send size={16} />
         </button>
       </div>
     </div>

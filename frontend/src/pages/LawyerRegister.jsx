@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
+import { Eye, EyeOff, AlertCircle, CheckCircle2, FileCheck2, Scale } from 'lucide-react';
 import './LawyerRegister.css';
 
 const LawyerRegister = () => {
+  const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -29,6 +31,7 @@ const LawyerRegister = () => {
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const navigate = useNavigate();
 
   const stateBarCouncils = [
@@ -134,8 +137,10 @@ const LawyerRegister = () => {
         }
       );
 
-      alert("Application submitted successfully! You will receive an email once your application is reviewed and approved.");
-      navigate('/login');
+      setSuccess("Application submitted successfully! You will receive an email once your verification documents are approved.");
+      setTimeout(() => {
+        navigate('/login');
+      }, 2500);
     } catch (err) {
       console.error('Registration error:', err);
       setError(err.response?.data?.message || "Error submitting application");
@@ -167,14 +172,37 @@ const LawyerRegister = () => {
 
           {error && (
             <div style={{ 
-              padding: '15px', 
-              backgroundColor: '#fee', 
-              color: '#c00', 
-              borderRadius: '5px', 
+              padding: '12px 16px', 
+              backgroundColor: '#fef2f2', 
+              color: '#b91c1c', 
+              borderRadius: '8px', 
               marginBottom: '20px',
-              border: '1px solid #fcc'
+              border: '1px solid #fecaca',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              fontSize: '14px'
             }}>
-              {error}
+              <AlertCircle size={18} style={{ flexShrink: 0 }} />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {success && (
+            <div style={{ 
+              padding: '12px 16px', 
+              backgroundColor: '#f0fdf4', 
+              color: '#15803d', 
+              borderRadius: '8px', 
+              marginBottom: '20px',
+              border: '1px solid #bbf7d0',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              fontSize: '14px'
+            }}>
+              <CheckCircle2 size={18} style={{ flexShrink: 0 }} />
+              <span>{success}</span>
             </div>
           )}
 
@@ -220,13 +248,23 @@ const LawyerRegister = () => {
 
               <div className="input-group">
                 <label>Password *</label>
-                <input 
-                  name="password" 
-                  type="password" 
-                  placeholder="Create strong password" 
-                  onChange={handleChange} 
-                  required 
-                />
+                <div className="password-input-wrapper">
+                  <input 
+                    name="password" 
+                    type={showPassword ? "text" : "password"} 
+                    placeholder="Create strong password" 
+                    onChange={handleChange} 
+                    required 
+                  />
+                  <button
+                    type="button"
+                    className="password-toggle-btn"
+                    onClick={() => setShowPassword(!showPassword)}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? <EyeOff size={19} /> : <Eye size={19} />}
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -363,8 +401,8 @@ const LawyerRegister = () => {
                   required
                 />
                 {files.sanad && (
-                  <span className="upload-success">
-                    ✓ {files.sanad.name} ({(files.sanad.size / 1024 / 1024).toFixed(2)} MB)
+                  <span className="upload-success" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                    <FileCheck2 size={15} /> {files.sanad.name} ({(files.sanad.size / 1024 / 1024).toFixed(2)} MB)
                   </span>
                 )}
               </div>
@@ -378,8 +416,8 @@ const LawyerRegister = () => {
                   required
                 />
                 {files.cop && (
-                  <span className="upload-success">
-                    ✓ {files.cop.name} ({(files.cop.size / 1024 / 1024).toFixed(2)} MB)
+                  <span className="upload-success" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                    <FileCheck2 size={15} /> {files.cop.name} ({(files.cop.size / 1024 / 1024).toFixed(2)} MB)
                   </span>
                 )}
               </div>
@@ -393,8 +431,8 @@ const LawyerRegister = () => {
                   required
                 />
                 {files.governmentId && (
-                  <span className="upload-success">
-                    ✓ {files.governmentId.name} ({(files.governmentId.size / 1024 / 1024).toFixed(2)} MB)
+                  <span className="upload-success" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                    <FileCheck2 size={15} /> {files.governmentId.name} ({(files.governmentId.size / 1024 / 1024).toFixed(2)} MB)
                   </span>
                 )}
               </div>

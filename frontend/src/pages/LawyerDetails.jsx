@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { ShieldCheck, AlertCircle, CheckCircle2, Calendar, Clock, Send } from 'lucide-react';
 import './LawyerDetails.css';
 
 const LawyerDetails = () => {
@@ -8,6 +9,9 @@ const LawyerDetails = () => {
   const navigate = useNavigate();
   const [lawyer, setLawyer] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [statusMessage, setStatusMessage] = useState({ type: '', text: '' });
+  const [connecting, setConnecting] = useState(false);
+  const [booking, setBooking] = useState(false);
   const currentUser = JSON.parse(localStorage.getItem('user'));
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
@@ -30,44 +34,65 @@ const LawyerDetails = () => {
 
   const handleConnect = async () => {
     if (!currentUser) {
-      alert('Please login to connect with lawyers');
-      navigate('/login');
+      setStatusMessage({ type: 'error', text: 'Please log in to connect with lawyers. Redirecting...' });
+      setTimeout(() => navigate('/login'), 1500);
       return;
     }
 
     try {
+      setConnecting(true);
+      setStatusMessage({ type: '', text: '' });
       const token = localStorage.getItem('token');
       await axios.post(
         'http://localhost:3000/api/connect/send',
         { receiverId: lawyer._id },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      alert('Connection request sent successfully!');
+      setStatusMessage({ type: 'success', text: 'Connection request sent successfully! You will be notified once accepted.' });
+      setTimeout(() => setStatusMessage({ type: '', text: '' }), 5000);
     } catch (error) {
-      alert(error.response?.data?.message || 'Error sending connection request');
+      setStatusMessage({ type: 'error', text: error.response?.data?.message || 'Error sending connection request' });
+    } finally {
+      setConnecting(false);
     }
   };
 
-  const handleBooking = () => {
-    if (!date || !time) {
-      alert("Please select a date and time!");
+  const handleBooking = async () => {
+    if (!currentUser) {
+      setStatusMessage({ type: 'error', text: 'Please log in to book a consultation! Redirecting...' });
+      setTimeout(() => navigate('/login'), 1500);
       return;
     }
 
-    const newAppointment = {
-      id: Date.now(),
-      lawyer: lawyer.name,
-      date: date,
-      time: time,
-      status: "Pending"
-    };
+    if (!date || !time) {
+      setStatusMessage({ type: 'error', text: 'Please select a date and time slot for your consultation.' });
+      return;
+    }
 
-    const existingAppointments = JSON.parse(localStorage.getItem("myAppointments")) || [];
-    existingAppointments.push(newAppointment);
-    localStorage.setItem("myAppointments", JSON.stringify(existingAppointments));
+    try {
+      setBooking(true);
+      setStatusMessage({ type: '', text: '' });
+      const token = localStorage.getItem('token');
+      await axios.post(
+        'http://localhost:3000/api/appointments/book',
+        {
+          lawyerId: lawyer._id,
+          date,
+          time
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
-    alert("Booking Successful! Redirecting to Dashboard...");
-    navigate('/user-dashboard');
+      setStatusMessage({ type: 'success', text: 'Consultation booked successfully! Redirecting to your dashboard...' });
+      setTimeout(() => {
+        navigate('/user-dashboard');
+      }, 1800);
+    } catch (error) {
+      console.error("Booking error:", error);
+      setStatusMessage({ type: 'error', text: error.response?.data?.message || "Failed to book appointment" });
+    } finally {
+      setBooking(false);
+    }
   };
 
   if (loading) {
@@ -82,8 +107,12 @@ const LawyerDetails = () => {
     <div className="details-container">
       <div className="profile-header">
         <div className="profile-header-content">
-          <div className="profile-avatar">
-            {lawyer.name.charAt(0)}
+          <div className="profile-avatar" style={{ overflow: 'hidden' }}>
+            {lawyer.profilePic ? (
+              <img src={lawyer.profilePic} alt={lawyer.name} style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+            ) : (
+              lawyer.name.charAt(0)
+            )}
           </div>
           <div className="profile-title">
             <h1>{lawyer.name}</h1>
@@ -91,10 +120,29 @@ const LawyerDetails = () => {
             <p className="location-text">{lawyer.city}</p>
           </div>
         </div>
-        <button className="connect-btn" onClick={handleConnect}>
-          Send Connection Request
+        <button className="connect-btn" onClick={handleConnect} disabled={connecting} style={{ opacity: connecting ? 0.7 : 1 }}>
+          {connecting ? 'Sending Request...' : 'Send Connection Request'}
         </button>
       </div>
+
+      {statusMessage.text && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          padding: '12px 18px',
+          borderRadius: '8px',
+          margin: '0 0 20px 0',
+          fontSize: '14px',
+          fontWeight: '500',
+          backgroundColor: statusMessage.type === 'success' ? '#f0fdf4' : '#fef2f2',
+          border: statusMessage.type === 'success' ? '1px solid #bbf7d0' : '1px solid #fecaca',
+          color: statusMessage.type === 'success' ? '#15803d' : '#b91c1c'
+        }}>
+          {statusMessage.type === 'success' ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
+          <span>{statusMessage.text}</span>
+        </div>
+      )}
 
       <div className="details-body">
         <div className="left-section">
@@ -143,7 +191,9 @@ const LawyerDetails = () => {
           )}
 
           <div className="verification-badge">
-            <span className="badge-verified">✓ Verified Lawyer</span>
+            <span className="badge-verified" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+              <ShieldCheck size={16} /> Verified Advocate
+            </span>
           </div>
         </div>
 
@@ -168,8 +218,14 @@ const LawyerDetails = () => {
               <option value="05:00 PM">05:00 PM - 06:00 PM</option>
             </select>
             
-            <button type="button" className="confirm-btn" onClick={handleBooking}>
-              Confirm Booking
+            <button 
+              type="button" 
+              className="confirm-btn" 
+              onClick={handleBooking}
+              disabled={booking}
+              style={{ opacity: booking ? 0.7 : 1 }}
+            >
+              {booking ? 'Booking Slot...' : 'Confirm Booking'}
             </button>
           </form>
         </div>

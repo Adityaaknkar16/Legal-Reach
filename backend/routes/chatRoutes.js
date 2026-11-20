@@ -2,8 +2,41 @@ import express from 'express';
 import Message from '../models/Message.js';
 import User from '../models/user.js';
 import { protect } from '../middleware/authMiddleware.js';
+import upload from '../middleware/upload.js';
+import cloudinary from '../config/cloudinary.js';
+import fs from 'fs';
 
 const router = express.Router();
+
+// Upload document/photo attachment for chat
+router.post('/upload', protect, upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
+
+    const result = await cloudinary.uploader.upload(req.file.path, {
+      folder: 'legalreach/chat_attachments',
+      resource_type: 'auto'
+    });
+
+    if (fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+
+    res.json({
+      fileUrl: result.secure_url,
+      fileName: req.file.originalname,
+      fileType: req.file.mimetype
+    });
+  } catch (error) {
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+    console.error("Chat upload error:", error);
+    res.status(500).json({ message: "Failed to upload file", error: error.message });
+  }
+});
 // past chats
 
 router.get('/history/:userId', protect, async (req, res) => {

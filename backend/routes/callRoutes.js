@@ -1,88 +1,125 @@
 import express from 'express';
-import Message from '../models/Message.js';
+import Call from '../models/Call.js';
 import User from '../models/user.js';
 import { protect } from '../middleware/authMiddleware.js';
-import { decryptMessage, generateRoomKey } from '../utils/cryptoUtils.js';
 
 const router = express.Router();
 
-router.get('/history/:userId', protect, async (req, res) => {
+/**
+ * 1. Log Call Start (when a user initiates or joins a call room)
+ */
+router.post('/log-start', protect, async (req, res) => {
   try {
-    const { userId } = req.params;
-    const myId = req.user._id || req.user.id;
+    const { receiverId, roomId, callType } = req.body;
+    const callerId = req.user._id || req.user.id;
 
-    const messages = await Message.find({
-      $or: [
-        { sender: myId, receiver: userId },
-        { sender: userId, receiver: myId }
-      ]
-    }).sort({ createdAt: 1 });
+    if (!receiverId || !roomId) {
+      return res.status(400).json({ message: "receiverId and roomId are required." });
+    }
 
-    const roomKey = generateRoomKey(myId.toString(), userId);
+    // Check if a call record for this roomId already exists
+    let call = await Call.findOne({ roomId });
+    if (!call) {
+      call = new Call({
+        caller: callerId,
+        receiver: receiverId,
+        roomId,
+        callType: callType || 'video',
+        status: 'ongoing',
+        startTime: new Date()
+      });
+      await call.save();
+    }
 
-    const decryptedMessages = messages.map(msg => {
-      if (msg.isEncrypted && msg.encrypted) {
-        const decrypted = decryptMessage({
-          encrypted: msg.encrypted,
-          iv: msg.iv,
-          authTag: msg.authTag
-        }, roomKey);
-
-        return {
-          _id: msg._id,
-          sender: msg.sender,
-          receiver: msg.receiver,
-          message: decrypted || msg.message,
-          createdAt: msg.createdAt
-        };
-      }
-      return {
-        _id: msg._id,
-        sender: msg.sender,
-        receiver: msg.receiver,
-        message: msg.message,
-        createdAt: msg.createdAt
-      };
-    });
-
-    res.json(decryptedMessages);
+    res.status(201).json({ message: "Call logged as started", call });
   } catch (error) {
-    console.error('Chat history error:', error);
-    res.status(500).json({ error: error.message });
+    console.error("Call start log error:", error);
+    res.status(500).json({ message: "Server Error", error: error.message });
   }
 });
 
-router.get('/contacts', protect, async (req, res) => {
+/**
+ * 2. Log Call End (when a call is completed, rejected, or ended)
+ */
+router.post('/log-end', protect, async (req, res) => {
   try {
-    const myId = req.user._id || req.user.id;
+    const { roomId, status } = req.body;
 
-    const messages = await Message.find({
-      $or: [{ sender: myId }, { receiver: myId }]
-    });
+    if (!roomId) {
+      return res.status(400).json({ message: "roomId is required." });
+    }
 
-    const contactIds = new Set();
-    messages.forEach(msg => {
-      if (msg.sender.toString() !== myId.toString()) contactIds.add(msg.sender.toString());
-      if (msg.receiver.toString() !== myId.toString()) contactIds.add(msg.receiver.toString());
-    });
+    const call = await Call.findOne({ roomId }).sort({ createdAt: -1 });
+    if (!call) {
+      return res.status(404).json({ message: "Call record not found." });
+    }
 
-    const contacts = await User.find({ _id: { $in: Array.from(contactIds) } }).select('name email role');
+    const endTime = new Date();
+    call.endTime = endTime;
     
-    res.json(contacts);
+    // Calculate duration in seconds
+    const diffMs = endTime - new Date(call.startTime);
+    call.duration = Math.max(0, Math.round(diffMs / 1000));
+    call.status = status || (call.duration > 5 ? 'completed' : 'missed');
+
+    await call.save();
+
+    res.json({ message: "Call logged as ended", call });
   } catch (error) {
-    console.error('Contacts error:', error);
-    res.status(500).json({ error: error.message });
+    console.error("Call end log error:", error);
+    res.status(500).json({ message: "Server Error", error: error.message });
   }
 });
 
-router.get('/users', protect, async (req, res) => {
+/**
+ * 3. Get Call History for the Authenticated User
+ */
+router.get('/history', protect, async (req, res) => {
   try {
     const myId = req.user._id || req.user.id;
-    const users = await User.find({ _id: { $ne: myId } }).select('name email role');
-    res.json(users);
+
+    const calls = await Call.find({
+      $or: [{ caller: myId }, { receiver: myId }]
+    })
+      .populate('caller', 'name email role profilePic specialization')
+      .populate('receiver', 'name email role profilePic specialization')
+      .sort({ createdAt: -1 });
+
+    res.json(calls);
   } catch (error) {
-    console.error('Users error:', error);
-    res.status(500).json({ error: error.message });
+    console.error("Call history error:", error);
+    res.status(500).json({ message: "Server Error", error: error.message });
+  }
+});
+
+/**
+ * 4. Get Call Statistics for Dashboard
+ */
+router.get('/stats', protect, async (req, res) => {
+  try {
+    const myId = req.user._id || req.user.id;
+
+    const calls = await Call.find({
+      $or: [{ caller: myId }, { receiver: myId }]
+    });
+
+    const totalCalls = calls.length;
+    const completedCalls = calls.filter(c => c.status === 'completed');
+    const totalSeconds = completedCalls.reduce((acc, curr) => acc + (curr.duration || 0), 0);
+    const totalMinutes = Math.round(totalSeconds / 60);
+    const videoCalls = calls.filter(c => c.callType === 'video').length;
+    const audioCalls = calls.filter(c => c.callType === 'audio').length;
+
+    res.json({
+      totalCalls,
+      completedCalls: completedCalls.length,
+      totalMinutes,
+      videoCalls,
+      audioCalls
+    });
+  } catch (error) {
+    console.error("Call stats error:", error);
+    res.status(500).json({ message: "Server Error", error: error.message });
   }
 });
 

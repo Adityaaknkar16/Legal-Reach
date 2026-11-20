@@ -117,9 +117,18 @@ const FindLawyers = () => {
           <div className="results-grid">
             {filteredLawyers.map(lawyer => (
               <div key={lawyer._id} className="result-card">
-                <div className="card-header">
-                  <h3>{lawyer.name}</h3>
-                  <span className="badge">{lawyer.specialization}</span>
+                <div className="card-header" style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                  {lawyer.profilePic ? (
+                    <img src={lawyer.profilePic} alt={lawyer.name} style={{ width: '46px', height: '46px', borderRadius: '50%', objectFit: 'cover', border: '2px solid #3b82f6', flexShrink: 0 }} />
+                  ) : (
+                    <div style={{ width: '46px', height: '46px', borderRadius: '50%', background: '#dbeafe', color: '#1e3a8a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '18px', flexShrink: 0 }}>
+                      {lawyer.name?.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <div style={{ flex: 1 }}>
+                    <h3 style={{ margin: '0 0 4px 0' }}>{lawyer.name}</h3>
+                    <span className="badge">{lawyer.specialization}</span>
+                  </div>
                 </div>
                 
                 <div className="card-details">

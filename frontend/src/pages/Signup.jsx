@@ -1,10 +1,15 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { Eye, EyeOff, User, Scale, AlertCircle, CheckCircle2 } from 'lucide-react';
 import './Login.css';
 
 const Signup = () => {
   const navigate = useNavigate();
   const [selectedRole, setSelectedRole] = useState('client');
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -25,6 +30,10 @@ const Signup = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
+    setSuccess('');
+    setLoading(true);
+
     try {
       const res = await fetch('http://localhost:3000/api/auth/register', {
         method: 'POST',
@@ -34,14 +43,18 @@ const Signup = () => {
       const data = await res.json();
       
       if (res.ok) {
-        alert("OTP sent to your email. Please verify.");
-        navigate('/verify-otp', { state: { email: formData.email } });
+        setSuccess("OTP sent to your email. Redirecting to verification...");
+        setTimeout(() => {
+          navigate('/verify-otp', { state: { email: formData.email } });
+        }, 1500);
       } else {
-        alert(data.message || "Signup Failed");
+        setError(data.message || "Signup failed. Please try again.");
       }
-    } catch (error) {
-      console.error(error);
-      alert("Backend not connected");
+    } catch (err) {
+      console.error(err);
+      setError("Unable to connect to server. Please try again later.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -53,9 +66,9 @@ const Signup = () => {
         <div style={{ 
           display: 'flex', 
           gap: '10px', 
-          marginBottom: '30px',
+          marginBottom: '20px',
           padding: '5px',
-          backgroundColor: '#f0f0f0',
+          backgroundColor: '#f1f5f9',
           borderRadius: '10px'
         }}>
           <button
@@ -63,36 +76,82 @@ const Signup = () => {
             onClick={() => handleRoleClick('client')}
             style={{
               flex: 1,
-              padding: '12px',
+              padding: '10px',
               border: 'none',
               borderRadius: '8px',
               cursor: 'pointer',
               fontWeight: '600',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
               backgroundColor: selectedRole === 'client' ? '#1e3a8a' : 'transparent',
-              color: selectedRole === 'client' ? 'white' : '#666',
+              color: selectedRole === 'client' ? 'white' : '#64748b',
               transition: 'all 0.3s'
             }}
           >
-            👤 Client
+            <User size={16} /> Client
           </button>
           <button
             type="button"
             onClick={() => handleRoleClick('lawyer')}
             style={{
               flex: 1,
-              padding: '12px',
+              padding: '10px',
               border: 'none',
               borderRadius: '8px',
               cursor: 'pointer',
               fontWeight: '600',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
               backgroundColor: 'transparent',
-              color: '#666',
+              color: '#64748b',
               transition: 'all 0.3s'
             }}
           >
-            ⚖️ Lawyer
+            <Scale size={16} /> Lawyer
           </button>
         </div>
+
+        {error && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            backgroundColor: '#fef2f2',
+            border: '1px solid #fecaca',
+            color: '#b91c1c',
+            padding: '10px 14px',
+            borderRadius: '8px',
+            fontSize: '13px',
+            marginBottom: '18px',
+            textAlign: 'left'
+          }}>
+            <AlertCircle size={16} style={{ flexShrink: 0 }} />
+            <span>{error}</span>
+          </div>
+        )}
+
+        {success && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            backgroundColor: '#f0fdf4',
+            border: '1px solid #bbf7d0',
+            color: '#15803d',
+            padding: '10px 14px',
+            borderRadius: '8px',
+            fontSize: '13px',
+            marginBottom: '18px',
+            textAlign: 'left'
+          }}>
+            <CheckCircle2 size={16} style={{ flexShrink: 0 }} />
+            <span>{success}</span>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit}>
           <div style={{ marginBottom: '15px' }}>
@@ -122,19 +181,29 @@ const Signup = () => {
 
           <div style={{ marginBottom: '15px' }}>
             <label style={{ display: 'block', marginBottom: '5px' }}>Password</label>
-            <input 
-              name="password" 
-              type="password" 
-              placeholder="Password" 
-              onChange={handleChange} 
-              required 
-              className="form-control"
-              style={{ width: '100%', padding: '10px', borderRadius: '5px', border: '1px solid #ccc' }}
-            />
+            <div className="password-input-wrapper">
+              <input 
+                name="password" 
+                type={showPassword ? "text" : "password"} 
+                placeholder="Password" 
+                onChange={handleChange} 
+                required 
+                className="form-control"
+                style={{ width: '100%', padding: '10px', paddingRight: '42px', borderRadius: '5px', border: '1px solid #ccc' }}
+              />
+              <button
+                type="button"
+                className="password-toggle-btn"
+                onClick={() => setShowPassword(!showPassword)}
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? <EyeOff size={19} /> : <Eye size={19} />}
+              </button>
+            </div>
           </div>
 
-          <button type="submit" className="auth-btn" style={{ marginTop: '10px', width: '100%' }}>
-            Sign Up as Client
+          <button type="submit" className="auth-btn" disabled={loading} style={{ marginTop: '10px', width: '100%', opacity: loading ? 0.7 : 1 }}>
+            {loading ? 'Creating Account...' : 'Sign Up as Client'}
           </button>
         </form>
         
